@@ -1,0 +1,497 @@
+﻿<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MYLIFE MEDICAL CENTER - ระบบบันทึกการประเมินสภาพจิตใจ</title>
+<style>
+:root{
+  --bg:#fff7ed; --card:#fff; --ink:#431407; --muted:#9a3412;
+  --primary:#ea580c; --primary-dark:#c2410c; --line:#fed7aa;
+  --green:#16a34a; --yellow:#ca8a04; --red:#dc2626;
+  --green-bg:#dcfce7; --yellow-bg:#fef9c3; --red-bg:#fee2e2;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Sarabun","Leelawadee",Tahoma,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+header{background:linear-gradient(135deg,#9a3412,#ea580c 55%,#fb923c);color:#fff;padding:20px 16px;text-align:center;border-bottom:4px solid #7c2d12}
+header .hwrap{max-width:1100px;margin:0 auto;display:flex;gap:16px;align-items:center;justify-content:center;flex-wrap:wrap}
+header img.logo{width:86px;height:86px;object-fit:cover;border-radius:50%;background:#fff;padding:4px;border:3px solid #fff;box-shadow:0 4px 14px rgba(0,0,0,.3)}
+header h1{margin:0;font-size:22px;letter-spacing:.3px}
+header p{margin:6px 0 0;opacity:.95}
+.htext{text-align:left}
+@media(max-width:640px){.htext{text-align:center}header img.logo{width:72px;height:72px}}
+.wrap{max-width:1100px;margin:0 auto;padding:18px 14px 60px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
+.tabs button{border:1px solid var(--line);background:#fff;padding:10px 16px;border-radius:999px;cursor:pointer;font-size:15px}
+.tabs button.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;box-shadow:0 6px 20px rgba(2,6,23,.06)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:760px){.grid2{grid-template-columns:1fr}}
+label.f{display:block;font-weight:700;margin:12px 0 6px}
+input[type=text],input[type=date],input[type=url],select,textarea{width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:15px;font-family:inherit;background:#fff}
+textarea{min-height:90px;resize:vertical}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip input{display:none}
+.chip span{display:inline-block;padding:9px 14px;border:1.5px solid var(--line);border-radius:999px;background:#fff7ed;cursor:pointer}
+.chip input:checked+span{border-color:var(--primary);background:#ffedd5;font-weight:700}
+.diag{display:grid;grid-template-columns:1fr;gap:10px;margin-top:8px}
+.diag label{border:2px solid var(--line);border-radius:12px;padding:12px;display:flex;gap:10px;align-items:flex-start;cursor:pointer}
+.diag input{margin-top:4px;transform:scale(1.2)}
+.diag .g{border-color:#bbf7d0;background:#f0fdf4}
+.diag .y{border-color:#fde68a;background:#fefce8}
+.diag .r{border-color:#fecaca;background:#fef2f2}
+.diag small{color:var(--muted)}
+.btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+button.btn{border:0;border-radius:10px;padding:12px 18px;font-size:16px;cursor:pointer}
+.btn.primary{background:var(--primary);color:#fff}
+.btn.primary:hover{background:var(--primary-dark)}
+.btn.dark{background:var(--ink);color:#fff}
+.btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+.btn.danger{background:var(--red);color:#fff}
+.badge{display:inline-block;padding:4px 10px;border-radius:999px;font-size:13px;font-weight:700}
+.b-green{background:var(--green-bg);color:#166534}
+.b-yellow{background:var(--yellow-bg);color:#854d0e}
+.b-red{background:var(--red-bg);color:#991b1b}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{border-bottom:1px solid var(--line);padding:10px 8px;text-align:left;vertical-align:top}
+th{background:#ffedd5;position:sticky;top:0;color:#7c2d12}
+.tablewrap{overflow:auto;max-height:520px;border:1px solid var(--line);border-radius:12px}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.namewrap{position:relative}
+#nameDrop{position:absolute;left:0;right:0;top:100%;z-index:50;background:#fff;border:1.5px solid var(--line);border-radius:12px;margin-top:6px;box-shadow:0 12px 30px rgba(2,6,23,.15);overflow:hidden;display:none;max-height:260px;overflow-y:auto}
+#nameDrop .opt{padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:8px;align-items:center}
+#nameDrop .opt:hover{background:#ffedd5}
+#nameDrop .opt small{color:var(--muted)}
+#nameHist{font-size:13px;color:var(--muted);margin-top:6px}
+.docwrap{position:relative}
+#docDrop{position:absolute;left:0;right:0;top:100%;z-index:50;background:#fff;border:1.5px solid var(--line);border-radius:12px;margin-top:6px;box-shadow:0 12px 30px rgba(2,6,23,.15);overflow:hidden;display:none;max-height:220px;overflow-y:auto}
+#docDrop .opt{padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:8px;align-items:center}
+#docDrop .opt:hover{background:#ffedd5}
+#docDrop .opt small{color:var(--muted)}
+.notewrap,.recwrap{position:relative}
+#noteDrop,#recDrop{position:absolute;left:0;right:0;top:100%;z-index:50;background:#fff;border:1.5px solid var(--line);border-radius:12px;margin-top:6px;box-shadow:0 12px 30px rgba(2,6,23,.15);overflow:hidden;display:none;max-height:240px;overflow-y:auto}
+#noteDrop .opt,#recDrop .opt{padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--line);font-size:14px}
+#noteDrop .opt:hover,#recDrop .opt:hover{background:#ffedd5}
+#noteDrop .opt small,#recDrop .opt small{color:var(--muted)}
+.toolbar input,.toolbar select{width:auto;flex:1;min-width:160px}
+.hint{background:#fff7ed;border:1px dashed #fb923c;border-radius:12px;padding:12px;margin-top:14px;font-size:14px;color:#9a3412}
+.status{margin-top:10px;font-size:14px}
+#printArea{display:none}
+/* print report - fit single page when content fits, no blank pages */
+@media print{
+  @page{margin:10mm}
+  header,.wrap{display:none !important}
+  body{background:#fff;margin:0}
+  #printArea{display:block;width:100%;padding:0;color:#000}
+  .r-head{text-align:center;border-bottom:3px double #ea580c;padding-bottom:10px;margin:0 0 10px}
+  .r-head img.plogo{width:80px;height:80px;object-fit:cover;border-radius:50%}
+  .r-head h2{color:#9a3412;margin:8px 0 4px;font-size:18px}
+  .r-head h3{margin:4px 0;font-size:15px}
+  .r-box{border:1.5px solid #ea580c;border-radius:8px;padding:10px;margin:8px 0;page-break-inside:avoid}
+  .r-box b.ht{color:#9a3412}
+  .r-sign{display:flex;justify-content:space-between;margin-top:20px;page-break-inside:avoid}
+  #printArea table{page-break-inside:auto;border-collapse:collapse}
+  #printArea thead{display:table-header-group}
+  #printArea tr{page-break-inside:avoid}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="hwrap">
+    <img class="logo" src="Pictures/001.png" alt="Hospital Logo" onerror="this.style.display='none'">
+    <div class="htext">
+      <h1>MYLIFE MEDICAL CENTER — PSYCHIATRIC DEPARTMENT</h1>
+      <p>ใบรายงานการประเมินสภาพจิตใจ (Mental Health Assessment Report) • ระบบบันทึกออนไลน์ → Google Sheets</p>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="tabs">
+    <button id="tabForm" class="active" onclick="showTab('form')">แบบฟอร์มประเมิน</button>
+    <button id="tabList" onclick="showTab('list')">ประวัติการประเมิน</button>
+    <button id="tabSetup" onclick="showTab('setup')">ตั้งค่า</button>
+  </div>
+
+  <!-- FORM -->
+  <div id="page-form" class="card">
+    <h2 style="margin:0">ใบรายงานการประเมินสภาพจิตใจ</h2>
+
+    <div class="grid2">
+      <div>
+        <label class="f">ชื่อ-นามสกุล (IC) *</label>
+        <div class="namewrap">
+          <input type="text" id="f_name" placeholder="เช่น นายสมชาย ใจดี — พิมพ์เพื่อค้นชื่อเดิม..." autocomplete="off" oninput="onNameInput()" onfocus="onNameInput()" onchange="autoFillPositionIfExact()">
+          <div id="nameDrop"></div>
+        </div>
+        <div id="nameHist"></div>
+      </div>
+      <div>
+        <label class="f">อาชีพ / ตำแหน่ง</label>
+        <input type="text" id="f_position" placeholder="เช่น แพทย์ นักศึกษา ตำรวจ นักเรียน ตร.">
+      </div>
+    </div>
+
+    <label class="f">[ ผลการทดสอบทางจิตวิทยา ]</label>
+    <div class="grid2">
+      <div>
+        <label class="f">การควบคุมอารมณ์ภายใต้ความกดดัน</label>
+        <div class="chips" id="f_emotion">
+          <label class="chip"><input type="radio" name="emotion" value="ผ่าน"><span>ผ่าน</span></label>
+          <label class="chip"><input type="radio" name="emotion" value="เฝ้าระวัง"><span>เฝ้าระวัง</span></label>
+          <label class="chip"><input type="radio" name="emotion" value="ไม่ผ่าน"><span>ไม่ผ่าน</span></label>
+        </div>
+      </div>
+      <div>
+        <label class="f">ระดับความเห็นอกเห็นใจ (Empathy)</label>
+        <div class="chips">
+          <label class="chip"><input type="radio" name="empathy" value="สูง"><span>สูง</span></label>
+          <label class="chip"><input type="radio" name="empathy" value="ปกติ" checked><span>ปกติ</span></label>
+          <label class="chip"><input type="radio" name="empathy" value="ต่ำกว่าเกณฑ์"><span>ต่ำกว่าเกณฑ์</span></label>
+        </div>
+      </div>
+    </div>
+
+    <label class="f">การตัดสินใจในภาวะวิกฤต (Dilemma Test)</label>
+    <div class="chips">
+      <label class="chip"><input type="radio" name="dilemma" value="ปกติ" checked><span>ปกติ</span></label>
+      <label class="chip"><input type="radio" name="dilemma" value="มีความเสี่ยง"><span>มีความเสี่ยง</span></label>
+      <label class="chip"><input type="radio" name="dilemma" value="บิดเบี้ยว"><span>บิดเบี้ยว</span></label>
+    </div>
+
+    <label class="f">[ บันทึกเพิ่มเติมของจิตแพทย์ ]</label>
+    <div class="notewrap">
+      <textarea id="f_notes" placeholder="กรอกพฤติกรรมเด่นๆ เช่น: ผู้เข้าสอบมีอาการมือสั่นเมื่อโดนกดดัน / ตอบคำถามด้วยความก้าวร้าว / มีตรรกะศาลเตี้ยเด่นชัด" autocomplete="off" oninput="onNoteInput()" onfocus="onNoteInput()"></textarea>
+      <div id="noteDrop"></div>
+    </div>
+
+    <label class="f">[ สรุปผลการวินิจฉัย (Diagnosis) ]</label>
+    <div class="diag">
+      <label class="g"><input type="radio" name="diag" value="PASSED" checked><span>🟢 <b>[PASSED]</b> สภาพจิตใจปกติ พร้อมปฏิบัติหน้าที่และพกพาอาวุธปืน</span></label>
+      <label class="y"><input type="radio" name="diag" value="CONDITIONAL PASSED"><span>🟡 <b>[CONDITIONAL PASSED]</b> ผ่านแบบมีเงื่อนไข</span></label>
+      <label class="r"><input type="radio" name="diag" value="FAILED"><span>🔴 <b>[FAILED]</b> ไม่ผ่านเกณฑ์</span></label>
+    </div>
+
+    <label class="f">[ ข้อแนะนำ ]</label>
+    <div class="recwrap">
+      <textarea id="f_recommend" placeholder="เช่น นัดติดตามอาการใน 7 วัน / งดพกพาอาวุธปืนยาว / เข้ารับการบำบัด..." autocomplete="off" oninput="onRecInput()" onfocus="onRecInput()"></textarea>
+      <div id="recDrop"></div>
+    </div>
+
+    <div class="grid2">
+      <div>
+        <label class="f">ลงชื่อ จิตแพทย์ผู้ประเมิน — พิมพ์เพื่อค้นหาชื่อเดิม</label>
+        <div class="docwrap">
+          <input type="text" id="f_doctor" placeholder="เช่น พญ. มายไลฟ์ — พิมพ์เพื่อค้นชื่อเดิม..." autocomplete="off" oninput="onDocInput()" onfocus="onDocInput()">
+          <div id="docDrop"></div>
+        </div>
+      </div>
+      <div>
+        <label class="f">วันที่ประเมิน</label>
+        <input type="date" id="f_date">
+      </div>
+    </div>
+
+    <div class="btnrow">
+      <button class="btn primary" onclick="saveRecord()">บันทึกการประเมิน</button>
+      <button class="btn ghost" onclick="clearForm()">ล้างฟอร์ม</button>
+      <button class="btn dark" onclick="saveAndPrint()">บันทึก + พิมพ์</button>
+    </div>
+    <div class="status" id="saveStatus"></div>
+  </div>
+
+  <!-- LIST -->
+  <div id="page-list" class="card" style="display:none">
+    <h2 style="margin:0 0 10px">ประวัติการประเมิน</h2>
+    <div class="toolbar">
+      <input type="text" id="q" placeholder="ค้นหา" oninput="renderTable()">
+      <select id="qDiag" onchange="renderTable()">
+        <option value="">ทุกผลวินิจฉัย</option>
+        <option value="PASSED">PASSED</option>
+        <option value="CONDITIONAL PASSED">CONDITIONAL</option>
+        <option value="FAILED">FAILED</option>
+      </select>
+      <button class="btn ghost" onclick="loadFromSheet()">ดึงจาก Google Sheets</button>
+      <button class="btn ghost" onclick="exportCSV()">Export CSV</button>
+      <button class="btn dark" onclick="printFiltered()">พิมพ์รายงานตามที่ค้น</button>
+    </div>
+    <div class="tablewrap"><table style="min-width:900px">
+      <thead><tr><th style="min-width:95px">วันที่</th><th style="min-width:150px">ชื่อ (IC) / อาชีพ-ตำแหน่ง</th><th>ผลทดสอบ</th><th>ผลวินิจฉัย</th><th style="min-width:220px">บันทึกเพิ่มเติม / ข้อแนะนำ</th><th>แพทย์</th><th>จัดการ</th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table></div>
+    <div class="status" id="listStatus"></div>
+  </div>
+
+  <!-- SETUP -->
+  <div id="page-setup" class="card" style="display:none">
+    <h2>ตั้งค่า Google Sheets</h2>
+    <div id="loginStat" style="margin-bottom:10px;font-size:14px"></div>
+    <label class="f">Google Apps Script Web App URL</label>
+    <input type="url" id="cfg_url" placeholder="https://script.google.com/macros/s/AKf.../exec">
+    <div class="btnrow">
+      <button class="btn primary" onclick="saveConfig()">บันทึก</button>
+      <button class="btn ghost" onclick="testConfig()">ทดสอบ</button>
+      <button class="btn danger" onclick="clearAll()">ลบข้อมูลในเครื่อง</button>
+      <button class="btn ghost" onclick="logout()">ออกจากระบบ</button>
+    </div>
+    <div class="status" id="cfgStatus"></div>
+    <hr style="border:0;border-top:1px solid var(--line);margin:18px 0">
+    <h3 style="margin:0 0 8px">เปลี่ยนรหัสผ่าน</h3>
+    <div class="grid2">
+      <div><label class="f">รหัสเดิม</label><input type="password" id="pw_old" autocomplete="off"></div>
+      <div><label class="f">รหัสใหม่</label><input type="password" id="pw_new" autocomplete="off"></div>
+    </div>
+    <div class="btnrow"><button class="btn dark" onclick="changePw()">เปลี่ยนรหัส</button></div>
+    <div class="status" id="pwStatus"></div>
+  </div>
+</div>
+
+<div id="printArea"></div>
+
+<script>
+const LS_KEY='psy_records_v1', CFG_KEY='psy_cfg_v1', PW_KEY='psy_pw_v1', SES_KEY='psy_session_v1';
+document.getElementById('f_date').valueAsDate=new Date();
+function getPw(){let p=null;try{p=localStorage.getItem(PW_KEY)}catch{}if(!p){p='mylife123';try{localStorage.setItem(PW_KEY,p)}catch{}}return p}
+function isAuthed(){try{return sessionStorage.getItem(SES_KEY)==='1'}catch{return false}}
+function requireAuth(){
+  if(isAuthed())return true;
+  const pw=prompt('กรุณาใส่รหัสผ่านก่อนดำเนินการ (ครั้งแรก: mylife123 แล้วไปเปลี่ยนในแท็บตั้งค่า)');
+  if(pw===null)return false;
+  if(pw===getPw()){try{sessionStorage.setItem(SES_KEY,'1')}catch{}return true}
+  alert('รหัสผ่านไม่ถูกต้อง');return false;
+}
+function logout(){try{sessionStorage.removeItem(SES_KEY)}catch{}updateLoginStat();alert('ออกจากระบบแล้ว');showTab('form')}
+function updateLoginStat(){const el=document.getElementById('loginStat');if(el)el.textContent=isAuthed()?'สถานะ: เข้าสู่ระบบแล้ว':'สถานะ: ยังไม่เข้าสู่ระบบ'}
+function changePw(){
+  const o=document.getElementById('pw_old').value, n=document.getElementById('pw_new').value;
+  const st=document.getElementById('pwStatus');
+  if(o!==getPw()){st.textContent='รหัสเดิมไม่ถูกต้อง';return}
+  if(!n||n.length<4){st.textContent='รหัสใหม่ต้องยาวอย่างน้อย 4 ตัว';return}
+  try{localStorage.setItem(PW_KEY,n)}catch{}
+  document.getElementById('pw_old').value='';document.getElementById('pw_new').value='';
+  st.textContent='เปลี่ยนรหัสแล้ว';
+}
+function getVal(n){const el=document.querySelector(`input[name="${n}"]:checked`);return el?el.value:''}
+function setVal(n,v){document.querySelectorAll(`input[name="${n}"]`).forEach(e=>e.checked=(e.value===v))}
+function getRecords(){try{return JSON.parse(localStorage.getItem(LS_KEY)||'[]')}catch{return[]}}
+function setRecords(r){localStorage.setItem(LS_KEY,JSON.stringify(r))}
+function getCfg(){try{return JSON.parse(localStorage.getItem(CFG_KEY)||'{}')}catch{return{}}}
+function showTab(t){if(t==='setup'&&!requireAuth())return;['form','list','setup'].forEach(k=>{document.getElementById('page-'+k).style.display=(k===t?'block':'none');document.getElementById('tab'+k[0].toUpperCase()+k.slice(1)).classList.toggle('active',k===t)});if(t==='list')renderTable();if(t==='setup'){document.getElementById('cfg_url').value=getCfg().url||'';updateLoginStat()}}
+function diagBadge(d){if(d==='PASSED')return '<span class="badge b-green">🟢 PASSED</span>';if(d==='CONDITIONAL PASSED')return '<span class="badge b-yellow">🟡 CONDITIONAL</span>';return '<span class="badge b-red">🔴 FAILED</span>'}
+function collect(){return{id:'ID-'+Date.now(),timestamp:new Date().toISOString(),name:document.getElementById('f_name').value.trim(),position:document.getElementById('f_position').value.trim(),emotion_control:getVal('emotion')||'ผ่าน',empathy:getVal('empathy'),dilemma:getVal('dilemma'),notes:document.getElementById('f_notes').value.trim(),diagnosis:getVal('diag'),recommendation:document.getElementById('f_recommend').value.trim(),psychiatrist:document.getElementById('f_doctor').value.trim(),assess_date:document.getElementById('f_date').value}}
+async function saveRecord(printAfter){
+  if(!requireAuth())return;
+  const r=collect();
+  if(!r.name){alert('กรุณากรอกชื่อ-นามสกุล (IC)');return}
+  const diagLabel=r.diagnosis==='PASSED'?'🟢 PASSED ปกติ':r.diagnosis==='CONDITIONAL PASSED'?'🟡 CONDITIONAL ผ่านแบบมีเงื่อนไข':'🔴 FAILED ไม่ผ่านเกณฑ์';
+  const ok=confirm(`ยืนยันบันทึกการประเมิน?\n\nชื่อ: ${r.name}\nตำแหน่ง: ${r.position||'-'}\nผล: ${diagLabel}\nวันที่: ${r.assess_date||'-'}\n\nกด OK เพื่อบันทึก${printAfter?' + พิมพ์ใบรายงาน':''}`);
+  if(!ok)return;
+  const arr=getRecords();arr.unshift(r);setRecords(arr);refreshNameDrop('');refreshDocDrop('');
+  const st=document.getElementById('saveStatus');st.textContent='บันทึกแล้ว';
+  const url=getCfg().url;
+  if(url){try{
+    await fetch(url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify(r)});
+    st.textContent='บันทึกแล้ว';
+  }catch(e){st.textContent='บันทึกในเครื่องแล้ว ส่งขึ้น Sheets ไม่สำเร็จ'}}
+  else st.textContent='บันทึกแล้ว';
+  if(printAfter){printRecord(r.id);}
+  clearForm();
+  renderTable();
+}
+function clearForm(){['f_name','f_notes','f_doctor','f_position','f_recommend'].forEach(id=>document.getElementById(id).value='');document.getElementById('f_date').valueAsDate=new Date()}
+function saveAndPrint(){saveRecord(true)}
+function uniqueNameMap(){
+  const m=new Map();
+  getRecords().forEach(x=>{
+    const k=(x.name||'').trim();if(!k)return;
+    if(!m.has(k))m.set(k,{count:0,last:x});
+    m.get(k).count++;
+  });
+  return m;
+}
+function onNameInput(){
+  const v=document.getElementById('f_name').value.trim().toLowerCase();
+  refreshNameDrop(v);
+}
+function refreshNameDrop(filter){
+  const drop=document.getElementById('nameDrop'), hist=document.getElementById('nameHist');
+  const m=uniqueNameMap();
+  if(m.size===0){drop.style.display='none';hist.textContent='';return}
+  let names=[...m.entries()];
+  if(filter)names=names.filter(([n])=>n.toLowerCase().includes(filter));
+  names=names.slice(0,8);
+  if(names.length===0){drop.style.display='none'}
+  else{
+    drop.innerHTML=names.map(([n,info])=>`<div class="opt" data-n="${esc(n)}" onclick="selectName(this.dataset.n)"><span><b>${esc(n)}</b><br><small>${esc(info.last.position||'')}${info.last.assess_date?' • '+esc(fmtDate(info.last.assess_date)):''}</small></span><small>📋 ${info.count} ครั้ง<br>${diagBadge(info.last.diagnosis)}</small></div>`).join('');
+    drop.style.display='block';
+  }
+  const cur=document.getElementById('f_name').value.trim();
+  if(cur&&m.has(cur)){hist.textContent=`พบประวัติ ${m.get(cur).count} ครั้ง`;hist.style.color='#166534'}
+  else{hist.textContent='';}
+}
+function findLatestByName(n){
+  const key=(n||'').trim().toLowerCase();
+  const arr=getRecords().filter(x=>((x.name||'').trim().toLowerCase()===key));
+  if(arr.length===0)return null;
+  arr.sort((a,b)=>String(b.timestamp||b.assess_date||'').localeCompare(String(a.timestamp||a.assess_date||'')));
+  return {record:arr[0],count:arr.length};
+}
+function selectName(n){
+  document.getElementById('f_name').value=n;
+  const found=findLatestByName(n);
+  const posEl=document.getElementById('f_position');
+  if(found&&found.record){
+    posEl.value=found.record.position||'';
+    posEl.style.background='#f0fdf4';
+    posEl.style.borderColor='#16a34a';
+    setTimeout(()=>{posEl.style.background='#fff';posEl.style.borderColor=''},1200);
+    document.getElementById('nameHist').textContent='';
+  }
+  document.getElementById('nameDrop').style.display='none';
+}
+function autoFillPositionIfExact(){
+  const cur=document.getElementById('f_name').value.trim();
+  if(!cur)return;
+  const found=findLatestByName(cur);
+  if(found&&found.record&&found.record.position){
+    document.getElementById('f_position').value=found.record.position;
+  }
+}
+document.addEventListener('click',e=>{if(!e.target.closest('.namewrap')){const d=document.getElementById('nameDrop');if(d)d.style.display='none'}if(!e.target.closest('.docwrap')){const d2=document.getElementById('docDrop');if(d2)d2.style.display='none'}if(!e.target.closest('.notewrap')){const d3=document.getElementById('noteDrop');if(d3)d3.style.display='none'}if(!e.target.closest('.recwrap')){const d4=document.getElementById('recDrop');if(d4)d4.style.display='none'}});
+function uniqueTextMap(field){
+  const m=new Map();
+  getRecords().forEach(x=>{
+    const k=(x[field]||'').trim();if(!k)return;
+    if(!m.has(k))m.set(k,0);
+    m.set(k,m.get(k)+1);
+  });
+  return m;
+}
+function onNoteInput(){
+  const v=document.getElementById('f_notes').value.trim().toLowerCase();
+  refreshTextDrop('noteDrop','f_notes','notes',v);
+}
+function onRecInput(){
+  const v=document.getElementById('f_recommend').value.trim().toLowerCase();
+  refreshTextDrop('recDrop','f_recommend','recommendation',v);
+}
+function refreshTextDrop(dropId,inputId,field,filter){
+  const drop=document.getElementById(dropId);
+  if(!drop)return;
+  const m=uniqueTextMap(field);
+  if(m.size===0){drop.style.display='none';return}
+  let items=[...m.entries()];
+  if(filter)items=items.filter(([t])=>t.toLowerCase().includes(filter));
+  items=items.slice(0,6);
+  if(items.length===0){drop.style.display='none'}
+  else{
+    drop.innerHTML=items.map(([t,c])=>`<div class="opt" data-t="${esc(t)}" onclick="selectText('${dropId}','${inputId}',this.dataset.t)"><div>${esc(t.length>120?t.slice(0,120)+'…':t)}</div><small>${c} ครั้ง — คลิกเพื่อใช้ข้อความนี้</small></div>`).join('');
+    drop.style.display='block';
+  }
+}
+function selectText(dropId,inputId,t){
+  document.getElementById(inputId).value=t;
+  document.getElementById(dropId).style.display='none';
+}
+function uniqueDocMap(){
+  const m=new Map();
+  getRecords().forEach(x=>{
+    const k=(x.psychiatrist||'').trim();if(!k)return;
+    if(!m.has(k))m.set(k,{count:0,last:x});
+    m.get(k).count++;
+  });
+  return m;
+}
+function onDocInput(){
+  const v=document.getElementById('f_doctor').value.trim().toLowerCase();
+  refreshDocDrop(v);
+}
+function refreshDocDrop(filter){
+  const drop=document.getElementById('docDrop');
+  if(!drop)return;
+  const m=uniqueDocMap();
+  if(m.size===0){drop.style.display='none';return}
+  let names=[...m.entries()];
+  if(filter)names=names.filter(([n])=>n.toLowerCase().includes(filter));
+  names=names.slice(0,8);
+  if(names.length===0){drop.style.display='none'}
+  else{
+    drop.innerHTML=names.map(([n,info])=>`<div class="opt" data-n="${esc(n)}" onclick="selectDoc(this.dataset.n)"><span><b>👨‍⚕️ ${esc(n)}</b></span><small>📋 ${info.count} ครั้ง</small></div>`).join('');
+    drop.style.display='block';
+  }
+}
+function selectDoc(n){
+  document.getElementById('f_doctor').value=n;
+  document.getElementById('docDrop').style.display='none';
+}
+function getFiltered(){
+  const q=(document.getElementById('q').value||'').toLowerCase(), qd=document.getElementById('qDiag').value;
+  let arr=getRecords();
+  if(qd)arr=arr.filter(x=>x.diagnosis===qd);
+  if(q)arr=arr.filter(x=>((x.name||'')+' '+(x.assess_date||'')+' '+(x.position||'')+' '+(x.emotion_control||'')+' '+(x.empathy||'')+' '+(x.dilemma||'')+' '+(x.notes||'')+' '+(x.recommendation||'')+' '+(x.psychiatrist||'')+' '+(x.diagnosis||'')).toLowerCase().includes(q));
+  return {arr,q,qd};
+}
+function renderTable(){
+  const {arr}=getFiltered();
+  document.getElementById('tbody').innerHTML=arr.map(x=>`<tr>
+    <td>${esc(fmtDate(x.assess_date))}</td>
+    <td><b>${esc(x.name)}</b><br><small style="color:#c2410c">${esc(x.position||'-')}</small></td>
+    <td><small>อารมณ์: <b>${esc(x.emotion_control||'-')}</b><br>Empathy: <b>${esc(x.empathy||'-')}</b><br>Dilemma: <b>${esc(x.dilemma||'-')}</b></small></td>
+    <td>${diagBadge(x.diagnosis)}</td>
+    <td><div style="font-size:13px;line-height:1.5;max-width:320px;white-space:pre-wrap"><b>บันทึกเพิ่มเติม:</b><br>${esc(x.notes||'-')}<br><br><b>ข้อแนะนำ:</b><br>${esc(x.recommendation||'-')}</div><div style="margin-top:6px"><button style="font-size:12px" onclick="viewRecord('${x.id}')">ดูเต็ม</button></div></td>
+    <td>${esc(x.psychiatrist||'')}</td>
+    <td style="white-space:nowrap"><button onclick="printRecord('${x.id}')" title="พิมพ์">พิมพ์</button> <button onclick="delRecord('${x.id}')" title="ลบ">ลบ</button></td></tr>`).join('')||'<tr><td colspan="7" style="text-align:center;color:#9a3412">— ยังไม่มีข้อมูล —</td></tr>';
+  document.getElementById('listStatus').textContent=`${arr.length} รายการ`;
+}
+function viewRecord(id){
+  const x=getRecords().find(v=>v.id===id);if(!x)return;
+  alert(`${x.name} (${x.position||'-'}) — ${fmtDate(x.assess_date)}\n\nอารมณ์: ${x.emotion_control||'-'} / Empathy: ${x.empathy||'-'} / Dilemma: ${x.dilemma||'-'}\nผล: ${x.diagnosis||'-'}\n\n[บันทึกเพิ่มเติม]\n${x.notes||'-'}\n\n[ข้อแนะนำ]\n${x.recommendation||'-'}\n\nแพทย์: ${x.psychiatrist||'-'}`);
+}
+function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function fmtDate(v){if(!v)return '';const s=String(v).trim();const m=s.match(/(\d{4}-\d{2}-\d{2})/);if(m)return m[1];const d=new Date(v);if(!isNaN(d))return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');return s}
+function delRecord(id){if(!confirm('ลบรายการนี้?'))return;setRecords(getRecords().filter(x=>x.id!==id));renderTable()}
+function printRecord(id){
+  const ls=document.getElementById('lsStyle');if(ls)ls.remove();
+  const x=getRecords().find(v=>v.id===id)||collect();
+  const diagText=x.diagnosis==='PASSED'?'[PASSED] สภาพจิตใจปกติ พร้อมปฏิบัติหน้าที่และพกพาอาวุธปืน':x.diagnosis==='CONDITIONAL PASSED'?'[CONDITIONAL PASSED] ผ่านแบบมีเงื่อนไข':'[FAILED] ไม่ผ่านเกณฑ์';
+  document.getElementById('printArea').innerHTML=`<div class="r-head"><img class="plogo" src="Pictures/001.png"><h2>MYLIFE MEDICAL CENTER - PSYCHIATRIC DEPARTMENT</h2><h3>ใบรายงานการประเมินสภาพจิตใจ (Mental Health Assessment Report)</h3></div>
+  <div class="r-box"><b class="ht">[ ข้อมูลผู้เข้ารับการประเมิน ]</b><br>• ชื่อ-นามสกุล (IC): ${esc(x.name)}<br>• อาชีพ/ตำแหน่ง: ${esc(x.position)}</div>
+  <div class="r-box"><b class="ht">[ ผลการทดสอบทางจิตวิทยา ]</b><br>การควบคุมอารมณ์ภายใต้ความกดดัน: <b>${esc(x.emotion_control)}</b><br>ระดับความเห็นอกเห็นใจ (Empathy): <b>${esc(x.empathy)}</b><br>การตัดสินใจในภาวะวิกฤต (Dilemma Test): <b>${esc(x.dilemma)}</b></div>
+  <div class="r-box"><b class="ht">[ บันทึกเพิ่มเติมของจิตแพทย์ ]</b><br>${esc(x.notes)||'-'}</div>
+  <div class="r-box"><b class="ht">[ สรุปผลการวินิจฉัย (Diagnosis) ]</b><br>${diagText}</div>
+  <div class="r-box"><b class="ht">[ ข้อแนะนำ ]</b><br>${esc(x.recommendation)||'-'}</div>
+  <div class="r-sign"><div>จิตแพทย์ผู้ประเมิน: <b>${esc(x.psychiatrist||'-')}</b></div><div>วันที่ประเมิน: ${esc(fmtDate(x.assess_date))}</div></div>`;
+  window.print();
+}
+function printFiltered(){
+  const {arr}=getFiltered();
+  if(!arr.length){alert('ไม่มีรายการ');return}
+  if(!document.getElementById('lsStyle')){
+    const st=document.createElement('style');st.id='lsStyle';st.textContent='@page{size:A4 landscape;margin:10mm}';
+    document.head.appendChild(st);
+  }
+  const rows=arr.map((x,i)=>`<tr><td>${i+1}</td><td>${esc(fmtDate(x.assess_date))}</td><td><b>${esc(x.name)}</b><br><small>${esc(x.position||'-')}</small></td><td><small>${esc(x.emotion_control||'-')}<br>${esc(x.empathy||'-')}<br>${esc(x.dilemma||'-')}</small></td><td>${esc(x.diagnosis||'')}</td><td style="white-space:pre-wrap">${esc(x.notes||'-')}</td><td style="white-space:pre-wrap">${esc(x.recommendation||'-')}</td><td>${esc(x.psychiatrist||'')}</td></tr>`).join('');
+  document.getElementById('printArea').innerHTML=`<div class="r-head"><img class="plogo" src="Pictures/001.png"><h2>MYLIFE MEDICAL CENTER - PSYCHIATRIC DEPARTMENT</h2><h3>รายงานสรุปผลการประเมินสภาพจิตใจ</h3></div>
+  <table border="1" cellspacing="0" cellpadding="6" style="width:100%;border-collapse:collapse;font-size:12px;border-color:#ea580c"><thead><tr style="background:#ffedd5"><th>ลำดับ</th><th>วันที่</th><th>ชื่อ / ตำแหน่ง</th><th>ผลทดสอบ</th><th>วินิจฉัย</th><th>บันทึกเพิ่มเติม</th><th>ข้อแนะนำ</th><th>แพทย์</th></tr></thead><tbody>${rows}</tbody></table>`;
+  window.print();
+}
+async function loadFromSheet(){
+  const url=getCfg().url;if(!url){alert('กรุณาตั้งค่า URL ก่อน');showTab('setup');return}
+  document.getElementById('listStatus').textContent='กำลังดึง...';
+  try{const res=await fetch(url+'?action=list');const j=await res.json();if(Array.isArray(j)){setRecords(j.reverse());renderTable();refreshNameDrop('');refreshDocDrop('');document.getElementById('listStatus').textContent=j.length+' รายการ'}}catch(e){document.getElementById('listStatus').textContent='ดึงไม่สำเร็จ'}
+}
+function exportCSV(){
+  const arr=getRecords();if(!arr.length){alert('ไม่มีข้อมูล');return}
+  const head=['timestamp','name','position','emotion_control','empathy','dilemma','notes','diagnosis','recommendation','psychiatrist','assess_date'];
+  const csv=[head.join(',')].concat(arr.map(r=>head.map(h=>'"'+String(r[h]||'').replace(/"/g,'""')+'"').join(','))).join('\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(["\ufeff"+csv],{type:'text/csv'}));a.download='psy-assessment.csv';a.click();
+}
+function saveConfig(){const u=document.getElementById('cfg_url').value.trim();localStorage.setItem(CFG_KEY,JSON.stringify({url:u}));document.getElementById('cfgStatus').textContent=u?'บันทึกแล้ว':''}
+async function testConfig(){const u=document.getElementById('cfg_url').value.trim()||getCfg().url;if(!u){alert('วาง URL ก่อน');return}document.getElementById('cfgStatus').textContent='ทดสอบ...';try{const r=await fetch(u+'?action=ping');const t=await r.text();document.getElementById('cfgStatus').textContent='เชื่อมต่อสำเร็จ'}catch(e){document.getElementById('cfgStatus').textContent='เชื่อมต่อไม่สำเร็จ'}}
+function clearAll(){if(!requireAuth())return;if(confirm('ลบข้อมูลทั้งหมดในเครื่อง?')){localStorage.removeItem(LS_KEY);renderTable();refreshNameDrop('');refreshDocDrop('')}}
+renderTable();refreshNameDrop('');refreshDocDrop('');
+</script>
+</body>
+</html>
+
