@@ -226,24 +226,14 @@ th{background:#ffedd5;position:sticky;top:0;color:#7c2d12}
   <!-- SETUP -->
   <div id="page-setup" class="card" style="display:none">
     <h2>ตั้งค่า Google Sheets</h2>
-    <div id="loginStat" style="margin-bottom:10px;font-size:14px"></div>
     <label class="f">Google Apps Script Web App URL</label>
     <input type="url" id="cfg_url" placeholder="https://script.google.com/macros/s/AKf.../exec">
     <div class="btnrow">
       <button class="btn primary" onclick="saveConfig()">บันทึก</button>
       <button class="btn ghost" onclick="testConfig()">ทดสอบ</button>
       <button class="btn danger" onclick="clearAll()">ลบข้อมูลในเครื่อง</button>
-      <button class="btn ghost" onclick="logout()">ออกจากระบบ</button>
     </div>
     <div class="status" id="cfgStatus"></div>
-    <hr style="border:0;border-top:1px solid var(--line);margin:18px 0">
-    <h3 style="margin:0 0 8px">เปลี่ยนรหัสผ่าน</h3>
-    <div class="grid2">
-      <div><label class="f">รหัสเดิม</label><input type="password" id="pw_old" autocomplete="off"></div>
-      <div><label class="f">รหัสใหม่</label><input type="password" id="pw_new" autocomplete="off"></div>
-    </div>
-    <div class="btnrow"><button class="btn dark" onclick="changePw()">เปลี่ยนรหัส</button></div>
-    <div class="status" id="pwStatus"></div>
   </div>
 </div>
 
@@ -252,27 +242,18 @@ th{background:#ffedd5;position:sticky;top:0;color:#7c2d12}
 <script>
 const LS_KEY='psy_records_v1', CFG_KEY='psy_cfg_v1', PW_KEY='psy_pw_v1', SES_KEY='psy_session_v1';
 const DEFAULT_URL='https://script.google.com/macros/s/AKfycbwqDXTf_pnDOxilBUhw652Nu00qwUZ0CQt8ip5gdDmOhCyFG-oqP9gJ4AgjjUeFdLv/exec';
+const MASTER_PW='Admin11548';
 document.getElementById('f_date').valueAsDate=new Date();
-function getPw(){let p=null;try{p=localStorage.getItem(PW_KEY)}catch{}if(!p){p='mylife123';try{localStorage.setItem(PW_KEY,p)}catch{}}return p}
+function getPw(){return MASTER_PW}
 function isAuthed(){try{return sessionStorage.getItem(SES_KEY)==='1'}catch{return false}}
 function requireAuth(){
   if(isAuthed())return true;
-  const pw=prompt('กรุณาใส่รหัสผ่านก่อนดำเนินการ (ครั้งแรก: mylife123 แล้วไปเปลี่ยนในแท็บตั้งค่า)');
+  const pw=prompt('กรุณาใส่รหัสผ่าน');
   if(pw===null)return false;
   if(pw===getPw()){try{sessionStorage.setItem(SES_KEY,'1')}catch{}return true}
   alert('รหัสผ่านไม่ถูกต้อง');return false;
 }
-function logout(){try{sessionStorage.removeItem(SES_KEY)}catch{}updateLoginStat();alert('ออกจากระบบแล้ว');showTab('form')}
 function updateLoginStat(){const el=document.getElementById('loginStat');if(el)el.textContent=isAuthed()?'สถานะ: เข้าสู่ระบบแล้ว':'สถานะ: ยังไม่เข้าสู่ระบบ'}
-function changePw(){
-  const o=document.getElementById('pw_old').value, n=document.getElementById('pw_new').value;
-  const st=document.getElementById('pwStatus');
-  if(o!==getPw()){st.textContent='รหัสเดิมไม่ถูกต้อง';return}
-  if(!n||n.length<4){st.textContent='รหัสใหม่ต้องยาวอย่างน้อย 4 ตัว';return}
-  try{localStorage.setItem(PW_KEY,n)}catch{}
-  document.getElementById('pw_old').value='';document.getElementById('pw_new').value='';
-  st.textContent='เปลี่ยนรหัสแล้ว';
-}
 function getVal(n){const el=document.querySelector(`input[name="${n}"]:checked`);return el?el.value:''}
 function setVal(n,v){document.querySelectorAll(`input[name="${n}"]`).forEach(e=>e.checked=(e.value===v))}
 function getRecords(){try{return JSON.parse(localStorage.getItem(LS_KEY)||'[]')}catch{return[]}}
