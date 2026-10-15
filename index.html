@@ -277,11 +277,10 @@ function setVal(n,v){document.querySelectorAll(`input[name="${n}"]`).forEach(e=>
 function getRecords(){try{return JSON.parse(localStorage.getItem(LS_KEY)||'[]')}catch{return[]}}
 function setRecords(r){localStorage.setItem(LS_KEY,JSON.stringify(r))}
 function getCfg(){try{return JSON.parse(localStorage.getItem(CFG_KEY)||'{}')}catch{return{}}}
-function showTab(t){if(t==='setup'&&!requireAuth())return;['form','list','setup'].forEach(k=>{document.getElementById('page-'+k).style.display=(k===t?'block':'none');document.getElementById('tab'+k[0].toUpperCase()+k.slice(1)).classList.toggle('active',k===t)});if(t==='list')renderTable();if(t==='setup'){document.getElementById('cfg_url').value=getCfg().url||'';updateLoginStat()}}
+function showTab(t){['form','list','setup'].forEach(k=>{document.getElementById('page-'+k).style.display=(k===t?'block':'none');document.getElementById('tab'+k[0].toUpperCase()+k.slice(1)).classList.toggle('active',k===t)});if(t==='list')renderTable();if(t==='setup'){document.getElementById('cfg_url').value=getCfg().url||'';updateLoginStat()}}
 function diagBadge(d){if(d==='PASSED')return '<span class="badge b-green">🟢 PASSED</span>';if(d==='CONDITIONAL PASSED')return '<span class="badge b-yellow">🟡 CONDITIONAL</span>';return '<span class="badge b-red">🔴 FAILED</span>'}
 function collect(){return{id:'ID-'+Date.now(),timestamp:new Date().toISOString(),name:document.getElementById('f_name').value.trim(),position:document.getElementById('f_position').value.trim(),emotion_control:getVal('emotion')||'ผ่าน',empathy:getVal('empathy'),dilemma:getVal('dilemma'),notes:document.getElementById('f_notes').value.trim(),diagnosis:getVal('diag'),recommendation:document.getElementById('f_recommend').value.trim(),psychiatrist:document.getElementById('f_doctor').value.trim(),assess_date:document.getElementById('f_date').value}}
 async function saveRecord(printAfter){
-  if(!requireAuth())return;
   const r=collect();
   if(!r.name){alert('กรุณากรอกชื่อ-นามสกุล (IC)');return}
   const diagLabel=r.diagnosis==='PASSED'?'🟢 PASSED ปกติ':r.diagnosis==='CONDITIONAL PASSED'?'🟡 CONDITIONAL ผ่านแบบมีเงื่อนไข':'🔴 FAILED ไม่ผ่านเกณฑ์';
