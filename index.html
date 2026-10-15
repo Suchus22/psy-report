@@ -476,21 +476,23 @@ function printFiltered(){
   <table border="1" cellspacing="0" cellpadding="6" style="width:100%;border-collapse:collapse;font-size:12px;border-color:#ea580c"><thead><tr style="background:#ffedd5"><th>ลำดับ</th><th>วันที่</th><th>ชื่อ / ตำแหน่ง</th><th>ผลทดสอบ</th><th>วินิจฉัย</th><th>บันทึกเพิ่มเติม</th><th>ข้อแนะนำ</th><th>แพทย์</th></tr></thead><tbody>${rows}</tbody></table>`;
   window.print();
 }
-async function loadFromSheet(){
-  const url=getCfg().url;if(!url){alert('กรุณาตั้งค่า URL ก่อน');showTab('setup');return}
-  document.getElementById('listStatus').textContent='กำลังดึง...';
-  try{const res=await fetch(url+'?action=list');const j=await res.json();if(Array.isArray(j)){setRecords(j.reverse());renderTable();refreshNameDrop('');refreshDocDrop('');document.getElementById('listStatus').textContent=j.length+' รายการ'}}catch(e){document.getElementById('listStatus').textContent='ดึงไม่สำเร็จ'}
+async function loadFromSheet(silent){
+  const url=getCfg().url;if(!url){if(!silent){alert('กรุณาตั้งค่า URL ก่อน');showTab('setup')}return}
+  if(!silent)document.getElementById('listStatus').textContent='กำลังดึง...';
+  try{const res=await fetch(url+'?action=list');const j=await res.json();if(Array.isArray(j)){setRecords(j.reverse());renderTable();refreshNameDrop('');refreshDocDrop('');refreshTextDrops();document.getElementById('listStatus').textContent=j.length+' รายการ'}}catch(e){if(!silent)document.getElementById('listStatus').textContent='ดึงไม่สำเร็จ'}
 }
+function refreshTextDrops(){refreshTextDrop('noteDrop','f_notes','notes','');refreshTextDrop('recDrop','f_recommend','recommendation','')}
 function exportCSV(){
   const arr=getRecords();if(!arr.length){alert('ไม่มีข้อมูล');return}
   const head=['timestamp','name','position','emotion_control','empathy','dilemma','notes','diagnosis','recommendation','psychiatrist','assess_date'];
   const csv=[head.join(',')].concat(arr.map(r=>head.map(h=>'"'+String(r[h]||'').replace(/"/g,'""')+'"').join(','))).join('\n');
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(["\ufeff"+csv],{type:'text/csv'}));a.download='psy-assessment.csv';a.click();
 }
-function saveConfig(){const u=document.getElementById('cfg_url').value.trim();localStorage.setItem(CFG_KEY,JSON.stringify({url:u}));document.getElementById('cfgStatus').textContent=u?'บันทึกแล้ว':''}
+function saveConfig(){const u=document.getElementById('cfg_url').value.trim();localStorage.setItem(CFG_KEY,JSON.stringify({url:u}));document.getElementById('cfgStatus').textContent=u?'บันทึกแล้ว':'';if(u)loadFromSheet(true)}
 async function testConfig(){const u=document.getElementById('cfg_url').value.trim()||getCfg().url;if(!u){alert('วาง URL ก่อน');return}document.getElementById('cfgStatus').textContent='ทดสอบ...';try{const r=await fetch(u+'?action=ping');const t=await r.text();document.getElementById('cfgStatus').textContent='เชื่อมต่อสำเร็จ'}catch(e){document.getElementById('cfgStatus').textContent='เชื่อมต่อไม่สำเร็จ'}}
 function clearAll(){if(!requireAuth())return;if(confirm('ลบข้อมูลทั้งหมดในเครื่อง?')){localStorage.removeItem(LS_KEY);renderTable();refreshNameDrop('');refreshDocDrop('')}}
 renderTable();refreshNameDrop('');refreshDocDrop('');
+if(getCfg().url)loadFromSheet(true);
 </script>
 </body>
 </html>
