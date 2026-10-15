@@ -246,8 +246,8 @@ const MASTER_PW='Admin11548';
 document.getElementById('f_date').valueAsDate=new Date();
 function getPw(){return MASTER_PW}
 function isAuthed(){try{return sessionStorage.getItem(SES_KEY)==='1'}catch{return false}}
-function requireAuth(){
-  if(isAuthed())return true;
+function requireAuth(force){
+  if(!force&&isAuthed())return true;
   const pw=prompt('กรุณาใส่รหัสผ่าน');
   if(pw===null)return false;
   if(pw===getPw()){try{sessionStorage.setItem(SES_KEY,'1')}catch{}return true}
@@ -469,7 +469,7 @@ function exportCSV(){
   const csv=[head.join(',')].concat(arr.map(r=>head.map(h=>'"'+String(r[h]||'').replace(/"/g,'""')+'"').join(','))).join('\n');
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(["\ufeff"+csv],{type:'text/csv'}));a.download='psy-assessment.csv';a.click();
 }
-function saveConfig(){const u=document.getElementById('cfg_url').value.trim();localStorage.setItem(CFG_KEY,JSON.stringify({url:u}));document.getElementById('cfgStatus').textContent=u?'บันทึกแล้ว':'';if(u)loadFromSheet(true)}
+function saveConfig(){if(!requireAuth(true))return;const u=document.getElementById('cfg_url').value.trim();localStorage.setItem(CFG_KEY,JSON.stringify({url:u}));document.getElementById('cfgStatus').textContent=u?'บันทึกแล้ว':'';if(u)loadFromSheet(true)}
 async function testConfig(){const u=document.getElementById('cfg_url').value.trim()||getCfg().url;if(!u){alert('วาง URL ก่อน');return}document.getElementById('cfgStatus').textContent='ทดสอบ...';try{const r=await fetch(u+'?action=ping');const t=await r.text();document.getElementById('cfgStatus').textContent='เชื่อมต่อสำเร็จ'}catch(e){document.getElementById('cfgStatus').textContent='เชื่อมต่อไม่สำเร็จ'}}
 function clearAll(){if(!requireAuth())return;if(confirm('ลบข้อมูลทั้งหมดในเครื่อง?')){localStorage.removeItem(LS_KEY);renderTable();refreshNameDrop('');refreshDocDrop('')}}
 renderTable();refreshNameDrop('');refreshDocDrop('');
