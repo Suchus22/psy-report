@@ -178,6 +178,16 @@ function notifyDiscord_(d) {  if (!shouldNotify_(d.diagnosis)) return;
   });
 }
 
+// สร้างชีตย่อย QuestionBank + แถวตัวอย่าง (active=0 ไม่โชว์ในแอป ใช้ดูรูปแบบ)
+// วิธีใช้: ใน Apps Script เลือก setupQuestionBank แล้วกด Run (▶) ครั้งเดียว
+function setupQuestionBank() {
+  const sh = getQbSheet_();
+  if (sh.getLastRow() <= 1) {
+    sh.appendRow(['TMP-1', 'ตัวอย่างกลุ่ม (ลบแถวนี้ได้)', 'ตัวอย่างหัวข้อ', 'ตัวอย่างคำถาม: เมื่อถูกกดดันจะทำอย่างไร', 'ผ่าน = ... / เฝ้าระวัง = ... / ไม่ผ่าน = ...', '0']);
+  }
+  return 'QuestionBank ready: ' + sh.getName();
+}
+
 // ฟังก์ชันทดสอบ: ใน Apps Script เลือก testDiscord แล้วกด Run (▶) ถ้า Discord ขึ้นข้อความ = Webhook ใช้ได้
 function testDiscord() {
   notifyDiscord_({
