@@ -106,6 +106,18 @@ function doGet(e) {
     }
     return jsonOut_({ ok: false, error: 'not found' });
   }
+  if (action === 'sh_del') {
+    const sh = getSheet_();
+    const p = e.parameter || {};
+    const values = sh.getDataRange().getValues();
+    for (let i = 1; i < values.length; i++) {
+      if (String(values[i][0]) === String(p.id)) {
+        sh.deleteRow(i + 1);
+        return jsonOut_({ ok: true });
+      }
+    }
+    return jsonOut_({ ok: false, error: 'not found' });
+  }
   return ContentService.createTextOutput('MYLIFE PSY API running. Use ?action=list or ?action=ping').setMimeType(ContentService.MimeType.TEXT);
 }
 

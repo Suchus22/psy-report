@@ -227,7 +227,7 @@ th{background:#ffedd5;position:sticky;top:0;color:#7c2d12}
   <div id="page-list" class="card" style="display:none">
     <h2 style="margin:0 0 10px">ประวัติการประเมิน</h2>
     <div class="toolbar">
-      <input type="text" id="q" placeholder="ค้นหา" oninput="renderTable()">
+      <input type="text" id="q" placeholder="ค้นหา" oninput="onSearch()">
       <select id="qDiag" onchange="renderTable()">
         <option value="">ทุกผลวินิจฉัย</option>
         <option value="PASSED">PASSED</option>
@@ -292,7 +292,10 @@ th{background:#ffedd5;position:sticky;top:0;color:#7c2d12}
 const LS_KEY='psy_records_v1', CFG_KEY='psy_cfg_v1', PW_KEY='psy_pw_v1', SES_KEY='psy_session_v1';
 const DEFAULT_URL='https://script.google.com/macros/s/AKfycbwqDXTf_pnDOxilBUhw652Nu00qwUZ0CQt8ip5gdDmOhCyFG-oqP9gJ4AgjjUeFdLv/exec';
 const MASTER_PW='Admin11548';
-document.getElementById('f_date').valueAsDate=new Date();
+function todayLocal(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+document.getElementById('f_date').value=todayLocal();
+let searchT=null;
+function onSearch(){clearTimeout(searchT);searchT=setTimeout(renderTable,180)}
 function getPw(){return MASTER_PW}
 function isAuthed(){try{return sessionStorage.getItem(SES_KEY)==='1'}catch{return false}}
 function requireAuth(force){
@@ -316,7 +319,7 @@ async function saveRecord(printAfter){
   if(!r.name){alert('กรุณากรอกชื่อ-นามสกุล (IC)');return}
   if(drawnQA.length&&drawnQA.some(q=>!q.rating)){alert('กรุณาประเมินคำถามให้ครบทุกข้อก่อนบันทึก');return}
   const diagLabel=r.diagnosis==='PASSED'?'🟢 PASSED ปกติ':r.diagnosis==='CONDITIONAL PASSED'?'🟡 CONDITIONAL ผ่านแบบมีเงื่อนไข':'🔴 FAILED ไม่ผ่านเกณฑ์';
-  const ok=confirm(`ยืนยันบันทึกการประเมิน?\n\nชื่อ: ${r.name}\nตำแหน่ง: ${r.position||'-'}\nผล: ${diagLabel}\nวันที่: ${r.assess_date||'-'}\n\nกด OK เพื่อบันทึก${printAfter?' + พิมพ์ใบรายงาน':''}`);
+  const ok=confirm(`ยืนยันบันทึกการประเมิน?\n\nชื่อ: ${r.name}\nตำแหน่ง: ${r.position||'-'}\nกลุ่ม: ${r.qa_group||'-'}${drawnQA.length?` (${drawnQA.length} ข้อ)`:''}\nผล: ${diagLabel}\nวันที่: ${r.assess_date||'-'}\n\nกด OK เพื่อบันทึก${printAfter?' + พิมพ์ใบรายงาน':''}`);
   if(!ok)return;
   const arr=getRecords();arr.unshift(r);setRecords(arr);refreshNameDrop('');refreshDocDrop('');
   const st=document.getElementById('saveStatus');st.textContent='บันทึกแล้ว';
@@ -330,7 +333,7 @@ async function saveRecord(printAfter){
   clearForm();
   renderTable();
 }
-function clearForm(){['f_name','f_notes','f_doctor','f_position','f_recommend'].forEach(id=>document.getElementById(id).value='');document.getElementById('f_date').valueAsDate=new Date();clearDraw()}
+function clearForm(){['f_name','f_notes','f_doctor','f_position','f_recommend'].forEach(id=>document.getElementById(id).value='');document.getElementById('f_date').value=todayLocal();clearDraw()}
 function saveAndPrint(){saveRecord(true)}
 function uniqueNameMap(){
   const m=new Map();
@@ -577,7 +580,7 @@ function getFiltered(){
 }
 function renderTable(){
   const {arr}=getFiltered();
-  document.getElementById('tbody').innerHTML=arr.map(x=>{const qa=parseQA(x);const qasum=qa.length?qa.map(q=>`${q.topic.split(' ')[0]}:${q.rating||'-'}`).join(' '):'';
+  document.getElementById('tbody').innerHTML=arr.map(x=>{const qa=parseQA(x);const qasum=qa.length?qa.map(q=>`${(q.topic||'').split(' ')[0]}:${q.rating||'-'}`).join(' '):'';
   return `<tr>
     <td>${esc(fmtDate(x.assess_date))}</td>
     <td><b>${esc(x.name)}</b><br><small style="color:#c2410c">${esc(x.position||'-')}</small>${x.qa_group?`<br><small>กลุ่ม: ${esc(x.qa_group)}</small>`:''}${qasum?`<br><small style="color:#9a3412">${esc(qasum)}</small>`:''}</td>
@@ -596,7 +599,7 @@ function viewRecord(id){
 }
 function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function fmtDate(v){if(!v)return '';const s=String(v).trim();const m=s.match(/(\d{4}-\d{2}-\d{2})/);if(m)return m[1];const d=new Date(v);if(!isNaN(d))return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');return s}
-function delRecord(id){if(!confirm('ลบรายการนี้?'))return;setRecords(getRecords().filter(x=>x.id!==id));renderTable()}
+function delRecord(id){if(!confirm('ลบรายการนี้?'))return;setRecords(getRecords().filter(x=>x.id!==id));renderTable();refreshNameDrop('');refreshDocDrop('');const u=getCfg().url;if(u){fetch(u+'?action=sh_del&id='+encodeURIComponent(id)).catch(()=>{})}}
 function printRecord(id){
   const ls=document.getElementById('lsStyle');if(ls)ls.remove();
   const x=getRecords().find(v=>v.id===id)||collect();
@@ -625,10 +628,17 @@ function printFiltered(){
   <table border="1" cellspacing="0" cellpadding="6" style="width:100%;border-collapse:collapse;font-size:12px;border-color:#ea580c"><thead><tr style="background:#ffedd5"><th>ลำดับ</th><th>วันที่</th><th>ชื่อ / ตำแหน่ง</th><th>ผลทดสอบ</th><th>วินิจฉัย</th><th>บันทึกเพิ่มเติม</th><th>ข้อแนะนำ</th><th>แพทย์</th></tr></thead><tbody>${rows}</tbody></table>`;
   window.print();
 }
+function mergeRecords(localArr,remoteArr){
+  const m=new Map();
+  localArr.concat(remoteArr).forEach(r=>{if(r&&r.id&&!m.has(r.id))m.set(r.id,r)});
+  const out=[...m.values()];
+  out.sort((a,b)=>String(b.timestamp||b.assess_date||'').localeCompare(String(a.timestamp||a.assess_date||'')));
+  return out;
+}
 async function loadFromSheet(silent){
   const url=getCfg().url;if(!url){if(!silent){alert('กรุณาตั้งค่า URL ก่อน');showTab('setup')}return}
   if(!silent)document.getElementById('listStatus').textContent='กำลังดึง...';
-  try{const res=await fetch(url+'?action=list');const j=await res.json();if(Array.isArray(j)){setRecords(j.reverse());renderTable();refreshNameDrop('');refreshDocDrop('');refreshTextDrops();document.getElementById('listStatus').textContent=j.length+' รายการ'}}catch(e){if(!silent)document.getElementById('listStatus').textContent='ดึงไม่สำเร็จ'}
+  try{const res=await fetch(url+'?action=list');const j=await res.json();if(Array.isArray(j)){setRecords(mergeRecords(getRecords(),j));renderTable();refreshNameDrop('');refreshDocDrop('');refreshTextDrops();document.getElementById('listStatus').textContent=getRecords().length+' รายการ'}}catch(e){if(!silent)document.getElementById('listStatus').textContent='ดึงไม่สำเร็จ'}
 }
 function refreshTextDrops(){refreshTextDrop('noteDrop','f_notes','notes','');refreshTextDrop('recDrop','f_recommend','recommendation','')}
 function exportCSV(){
@@ -641,7 +651,7 @@ function saveConfig(){if(!requireAuth(true))return;const u=document.getElementBy
 async function testConfig(){const u=document.getElementById('cfg_url').value.trim()||getCfg().url;if(!u){alert('วาง URL ก่อน');return}document.getElementById('cfgStatus').textContent='ทดสอบ...';try{const r=await fetch(u+'?action=ping');const t=await r.text();document.getElementById('cfgStatus').textContent='เชื่อมต่อสำเร็จ'}catch(e){document.getElementById('cfgStatus').textContent='เชื่อมต่อไม่สำเร็จ'}}
 function clearAll(){if(!requireAuth())return;if(confirm('ลบข้อมูลทั้งหมดในเครื่อง?')){localStorage.removeItem(LS_KEY);renderTable();refreshNameDrop('');refreshDocDrop('')}}
 renderTable();refreshNameDrop('');refreshDocDrop('');refreshGroups();
-if(getCfg().url){loadFromSheet(true);loadQb(true)}
+if(getCfg().url){Promise.allSettled([loadFromSheet(true),loadQb(true)])}
 </script>
 </body>
 </html>
