@@ -73,6 +73,14 @@ th{background:#ffedd5;position:sticky;top:0;color:#7c2d12}
 #noteDrop .opt,#recDrop .opt{padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--line);font-size:14px}
 #noteDrop .opt:hover,#recDrop .opt:hover{background:#ffedd5}
 #noteDrop .opt small,#recDrop .opt small{color:var(--muted)}
+.qacard{border:1.5px solid var(--line);border-radius:12px;padding:12px;margin:10px 0;background:#fff}
+.qacard .qt{font-weight:700}
+.qacard .qg{font-size:13px;color:var(--muted);margin:6px 0 8px;white-space:pre-wrap}
+.qarow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.qarow .chip span{font-size:14px;padding:8px 12px}
+.qasum{background:#ffedd5;border:1px dashed #fb923c;border-radius:12px;padding:10px 12px;margin-top:10px;font-size:14px}
+.bankitem{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:8px 0;font-size:14px}
+.bankitem small{color:var(--muted)}
 .toolbar input,.toolbar select{width:auto;flex:1;min-width:160px}
 .hint{background:#fff7ed;border:1px dashed #fb923c;border-radius:12px;padding:12px;margin-top:14px;font-size:14px;color:#9a3412}
 .status{margin-top:10px;font-size:14px}
@@ -111,6 +119,7 @@ th{background:#ffedd5;position:sticky;top:0;color:#7c2d12}
   <div class="tabs">
     <button id="tabForm" class="active" onclick="showTab('form')">แบบฟอร์มประเมิน</button>
     <button id="tabList" onclick="showTab('list')">ประวัติการประเมิน</button>
+    <button id="tabBank" onclick="showTab('bank')">คลังคำถาม</button>
     <button id="tabSetup" onclick="showTab('setup')">ตั้งค่า</button>
   </div>
 
@@ -132,6 +141,19 @@ th{background:#ffedd5;position:sticky;top:0;color:#7c2d12}
         <input type="text" id="f_position" placeholder="เช่น แพทย์ นักศึกษา ตำรวจ นักเรียน ตร.">
       </div>
     </div>
+
+    <div class="grid2">
+      <div>
+        <label class="f">กลุ่มผู้รับการประเมิน</label>
+        <select id="f_group" onchange="onGroupChange()"></select>
+      </div>
+      <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+        <button class="btn primary" onclick="drawQuestions()">สุ่มคำถาม (หัวข้อละ 1 ข้อ)</button>
+        <button class="btn ghost" onclick="clearDraw()">ล้างชุดคำถาม</button>
+      </div>
+    </div>
+    <div id="qaBox"></div>
+    <div id="qaSum"></div>
 
     <label class="f">[ ผลการทดสอบทางจิตวิทยา ]</label>
     <div class="grid2">
@@ -223,6 +245,33 @@ th{background:#ffedd5;position:sticky;top:0;color:#7c2d12}
     <div class="status" id="listStatus"></div>
   </div>
 
+  <!-- BANK -->
+  <div id="page-bank" class="card" style="display:none">
+    <h2 style="margin:0 0 10px">คลังคำถามรายกลุ่ม</h2>
+    <div class="grid2">
+      <div>
+        <label class="f">กลุ่ม</label>
+        <input type="text" id="b_group" list="b_groupList" placeholder="เช่น ตำรวจ">
+        <datalist id="b_groupList"></datalist>
+      </div>
+      <div>
+        <label class="f">หัวข้อ</label>
+        <input type="text" id="b_topic" list="b_topicList" placeholder="เช่น การควบคุมอารมณ์ภายใต้ความกดดัน">
+        <datalist id="b_topicList"></datalist>
+      </div>
+    </div>
+    <label class="f">คำถาม</label>
+    <textarea id="b_q" placeholder="เช่น เมื่อถูกยั่วยุขณะปฏิบัติหน้าที่ คุณจะทำอย่างไร"></textarea>
+    <label class="f">แนวทางการประเมิน</label>
+    <textarea id="b_g" placeholder="เช่น ผ่าน = หยุดคิดก่อนตอบ / เฝ้าระวัง = เสียงสั่นแต่คุมได้ / ไม่ผ่าน = ตอบโต้ทันที"></textarea>
+    <div class="btnrow">
+      <button class="btn primary" onclick="bankAdd()">เพิ่มคำถาม</button>
+      <button class="btn ghost" onclick="loadQb()">ดึงจาก Google Sheets</button>
+    </div>
+    <div class="status" id="bankStatus"></div>
+    <div id="bankList"></div>
+  </div>
+
   <!-- SETUP -->
   <div id="page-setup" class="card" style="display:none">
     <h2>ตั้งค่า Google Sheets</h2>
@@ -259,12 +308,13 @@ function setVal(n,v){document.querySelectorAll(`input[name="${n}"]`).forEach(e=>
 function getRecords(){try{return JSON.parse(localStorage.getItem(LS_KEY)||'[]')}catch{return[]}}
 function setRecords(r){localStorage.setItem(LS_KEY,JSON.stringify(r))}
 function getCfg(){try{const c=JSON.parse(localStorage.getItem(CFG_KEY)||'{}');if(c&&c.url)return c}catch{}return{url:DEFAULT_URL}}
-function showTab(t){['form','list','setup'].forEach(k=>{document.getElementById('page-'+k).style.display=(k===t?'block':'none');document.getElementById('tab'+k[0].toUpperCase()+k.slice(1)).classList.toggle('active',k===t)});if(t==='list')renderTable();if(t==='setup'){document.getElementById('cfg_url').value=getCfg().url||'';updateLoginStat()}}
+function showTab(t){['form','list','bank','setup'].forEach(k=>{document.getElementById('page-'+k).style.display=(k===t?'block':'none');document.getElementById('tab'+k[0].toUpperCase()+k.slice(1)).classList.toggle('active',k===t)});if(t==='list')renderTable();if(t==='bank'){renderBank()}if(t==='setup'){document.getElementById('cfg_url').value=getCfg().url||'';updateLoginStat()}}
 function diagBadge(d){if(d==='PASSED')return '<span class="badge b-green">🟢 PASSED</span>';if(d==='CONDITIONAL PASSED')return '<span class="badge b-yellow">🟡 CONDITIONAL</span>';return '<span class="badge b-red">🔴 FAILED</span>'}
-function collect(){return{id:'ID-'+Date.now(),timestamp:new Date().toISOString(),name:document.getElementById('f_name').value.trim(),position:document.getElementById('f_position').value.trim(),emotion_control:getVal('emotion')||'ผ่าน',empathy:getVal('empathy'),dilemma:getVal('dilemma'),notes:document.getElementById('f_notes').value.trim(),diagnosis:getVal('diag'),recommendation:document.getElementById('f_recommend').value.trim(),psychiatrist:document.getElementById('f_doctor').value.trim(),assess_date:document.getElementById('f_date').value}}
+function collect(){return{id:'ID-'+Date.now(),timestamp:new Date().toISOString(),name:document.getElementById('f_name').value.trim(),position:document.getElementById('f_position').value.trim(),emotion_control:getVal('emotion')||'ผ่าน',empathy:getVal('empathy'),dilemma:getVal('dilemma'),notes:document.getElementById('f_notes').value.trim(),diagnosis:getVal('diag'),recommendation:document.getElementById('f_recommend').value.trim(),psychiatrist:document.getElementById('f_doctor').value.trim(),assess_date:document.getElementById('f_date').value,qa_group:document.getElementById('f_group').value,qa_json:JSON.stringify(drawnQA)}}
 async function saveRecord(printAfter){
   const r=collect();
   if(!r.name){alert('กรุณากรอกชื่อ-นามสกุล (IC)');return}
+  if(drawnQA.length&&drawnQA.some(q=>!q.rating)){alert('กรุณาประเมินคำถามให้ครบทุกข้อก่อนบันทึก');return}
   const diagLabel=r.diagnosis==='PASSED'?'🟢 PASSED ปกติ':r.diagnosis==='CONDITIONAL PASSED'?'🟡 CONDITIONAL ผ่านแบบมีเงื่อนไข':'🔴 FAILED ไม่ผ่านเกณฑ์';
   const ok=confirm(`ยืนยันบันทึกการประเมิน?\n\nชื่อ: ${r.name}\nตำแหน่ง: ${r.position||'-'}\nผล: ${diagLabel}\nวันที่: ${r.assess_date||'-'}\n\nกด OK เพื่อบันทึก${printAfter?' + พิมพ์ใบรายงาน':''}`);
   if(!ok)return;
@@ -280,7 +330,7 @@ async function saveRecord(printAfter){
   clearForm();
   renderTable();
 }
-function clearForm(){['f_name','f_notes','f_doctor','f_position','f_recommend'].forEach(id=>document.getElementById(id).value='');document.getElementById('f_date').valueAsDate=new Date()}
+function clearForm(){['f_name','f_notes','f_doctor','f_position','f_recommend'].forEach(id=>document.getElementById(id).value='');document.getElementById('f_date').valueAsDate=new Date();clearDraw()}
 function saveAndPrint(){saveRecord(true)}
 function uniqueNameMap(){
   const m=new Map();
@@ -324,6 +374,7 @@ function selectName(n){
   const posEl=document.getElementById('f_position');
   if(found&&found.record){
     posEl.value=found.record.position||'';
+    if(found.record.qa_group&&qbGroups().includes(found.record.qa_group)){document.getElementById('f_group').value=found.record.qa_group;drawnQA=[];renderDraw()}
     posEl.style.background='#f0fdf4';
     posEl.style.borderColor='#16a34a';
     setTimeout(()=>{posEl.style.background='#fff';posEl.style.borderColor=''},1200);
@@ -406,28 +457,142 @@ function selectDoc(n){
   document.getElementById('f_doctor').value=n;
   document.getElementById('docDrop').style.display='none';
 }
+/* ===== คลังคำถาม + สุ่มรายหัวข้อ ===== */
+const T1='การควบคุมอารมณ์ภายใต้ความกดดัน', T2='ความเห็นอกเห็นใจ (Empathy)', T3='การตัดสินใจในภาวะวิกฤต';
+const SEED_QB=[
+['ประชาชนทั่วไป',T1,'เมื่อมีคนตะโกนด่าคุณในที่สาธารณะ คุณจะทำอย่างไร','ผ่าน = เดินเลี่ยง/ตอบสุภาพ เฝ้าระวัง = เสียงสั่นแต่คุมได้ ไม่ผ่าน = ด่าทอ/ลงมือทันที'],
+['ประชาชนทั่วไป',T1,'เมื่อรถติดนานจนหงุดหงิด คุณจัดการอารมณ์อย่างไร','ผ่าน = เปิดเพลง/หายใจลึก เฝ้าระวัง = บ่นแต่ไม่ก่อเหตุ ไม่ผ่าน = บีบแตรด่า/ขับปาด'],
+['ประชาชนทั่วไป',T1,'เมื่อถูกเพื่อนร่วมงานตำหนิอย่างไม่เป็นธรรม คุณตอบสนองอย่างไร','ผ่าน = รับฟังแล้วชี้แจงเหตุผล เฝ้าระวัง = เงียบแต่เก็บกด ไม่ผ่าน = ระเบิดอารมณ์ใส่'],
+['ประชาชนทั่วไป',T2,'เมื่อเห็นคนแปลกหน้าล้มกลางถนน คุณจะทำอย่างไร','ผ่าน = เข้าช่วย/โทรเรียกรถพยาบาล เฝ้าระวัง = ลังเลแต่ช่วย ไม่ผ่าน = เดินผ่านไม่สนใจ'],
+['ประชาชนทั่วไป',T2,'เพื่อนเล่าปัญหาชีวิตให้ฟัง คุณตอบอย่างไร','ผ่าน = รับฟังสะท้อนความรู้สึก เฝ้าระวัง = ฟังแต่รีบให้คำแนะนำ ไม่ผ่าน = ตัดบท/หัวเราะเยาะ'],
+['ประชาชนทั่วไป',T2,'ถ้าต้องเลือกระหว่างธุระตัวเองกับการช่วยผู้ประสบภัย คุณเลือกอย่างไร','ผ่าน = ช่วยก่อนแล้วค่อยจัดการธุระ เฝ้าระวัง = ลังเลนาน ไม่ผ่าน = เลือกธุระตัวเองเสมอ'],
+['ประชาชนทั่วไป',T3,'พบกระเป๋าเงินตกมีเงินจำนวนมาก ไม่มีใครเห็น คุณทำอย่างไร','ผ่าน = ส่งตำรวจ/ตามหาเจ้าของ เฝ้าระวัง = เก็บไว้ก่อนแต่รายงาน ไม่ผ่าน = เก็บเป็นของตัวเอง'],
+['ประชาชนทั่วไป',T3,'เพื่อนชวนทำผิดกฎหมายโดยอ้างว่าทุกคนทำกัน คุณตัดสินใจอย่างไร','ผ่าน = ปฏิเสธชัดเจน เฝ้าระวัง = ลังเลแต่ปฏิเสธ ไม่ผ่าน = ยอมทำตาม'],
+['ประชาชนทั่วไป',T3,'เมื่อต้องเลือกระหว่างพวกพ้องกับความถูกต้อง คุณเลือกอย่างไร','ผ่าน = ยึดความถูกต้อง เฝ้าระวัง = ขอเวลาคิดก่อนเลือกถูก ไม่ผ่าน = เลือกพวกพ้องเสมอ'],
+['ตำรวจ',T1,'เมื่อผู้ต้องสงสัยด่าทอและถ่มน้ำลายใส่ขณะจับกุม คุณทำอย่างไร','ผ่าน = ควบคุมตัวตามยุทธวิธีโดยไม่ตอบโต้ เฝ้าระวัง = เสียงแข็งแต่คุมมือได้ ไม่ผ่าน = ทำร้ายร่างกายตอบโต้'],
+['ตำรวจ',T1,'เมื่อประชาชนรุมกดดันและถ่ายคลิปขณะปฏิบัติหน้าที่ คุณคุมอารมณ์อย่างไร','ผ่าน = ชี้แจงสั้นสุภาพแล้วทำหน้าที่ต่อ เฝ้าระวัง = หน้านิ่งแต่พูดกระชาก ไม่ผ่าน = ตะคอก/แย่งกล้อง'],
+['ตำรวจ',T1,'หลังเข้าเวรติดต่อกันหลายวันจนอ่อนล้า แล้วเจอเหตุทะเลาะวิวาท คุณจัดการตัวเองอย่างไร','ผ่าน = ตั้งสติแยกคู่กรณีตามขั้นตอน เฝ้าระวัง = หงุดหงิดแต่ยังทำตามขั้นตอน ไม่ผ่าน = ใช้อารมณ์ตัดสิน/ใช้กำลังเกินเหตุ'],
+['ตำรวจ',T2,'เมื่อผู้เสียหายร้องไห้เล่าเหตุการณ์ คุณปฏิบัติอย่างไร','ผ่าน = รับฟังอย่างตั้งใจ ไม่เร่งรัด เฝ้าระวัง = ฟังแต่รีบสรุป ไม่ผ่าน = ตำหนิซ้ำเติม/ไม่สนใจความรู้สึก'],
+['ตำรวจ',T2,'เมื่อต้องจับกุมผู้กระทำผิดที่เป็นเยาวชน คุณวางตัวอย่างไร','ผ่าน = ใช้ถ้อยคำเหมาะสม คำนึงอนาคตเด็ก เฝ้าระวัง = เข้มงวดเกินจำเป็น ไม่ผ่าน = ข่มขู่/ใช้ความรุนแรง'],
+['ตำรวจ',T2,'ประชาชนไม่ให้ความร่วมมือเพราะไม่ไว้ใจตำรวจ คุณทำอย่างไร','ผ่าน = อธิบายด้วยความเคารพ สร้างความไว้วางใจ เฝ้าระวัง = อารมณ์เสียแต่ยังสุภาพ ไม่ผ่าน = ใช้อำนาจข่มขู่'],
+['ตำรวจ',T3,'เมื่อคนร้ายจับตัวประกันและยื่นข้อเรียกร้อง คุณตัดสินใจอย่างไร','ผ่าน = ยึดชีวิตตัวประกันก่อน ทำตามแผนเจรจา เฝ้าระวัง = ลังเลแต่ปรึกษาผู้บังคับบัญชา ไม่ผ่าน = บุกเดี่ยวโดยไม่ประเมินความเสี่ยง'],
+['ตำรวจ',T3,'พบเพื่อนตำรวจรับสินบน คุณจะทำอย่างไร','ผ่าน = รายงานตามช่องทาง เฝ้าระวัง = เตือนเพื่อนก่อนแล้วรายงาน ไม่ผ่าน = ปกปิด/ร่วมรับผลประโยชน์'],
+['ตำรวจ',T3,'เมื่อคำสั่งผู้บังคับบัญชาขัดกับความถูกต้อง คุณเลือกอย่างไร','ผ่าน = ทักท้วงตามระเบียบ/รายงานตามลำดับชั้น เฝ้าระวัง = ทำตามแต่บันทึกข้อโต้แย้ง ไม่ผ่าน = ทำตามโดยไม่คำนึงถูกผิด'],
+['แพทย์',T1,'เมื่อญาติคนไข้ตะโกนด่าเพราะรอคิวนาน คุณตอบสนองอย่างไร','ผ่าน = ขอโทษ อธิบาย ชวนนั่งรออย่างสุภาพ เฝ้าระวัง = หน้านิ่งแต่พูดห้วน ไม่ผ่าน = ด่ากลับ/ไล่ออกจากห้องตรวจ'],
+['แพทย์',T1,'เมื่อผ่าตัดเกิดภาวะแทรกซ้อนกะทันหัน คุณคุมสติอย่างไร','ผ่าน = เรียกทีม ช่วยตามแนวทางมาตรฐาน เฝ้าระวัง = มือสั่นแต่ทำต่อได้ ไม่ผ่าน = ตื่นตระหนกจนหยุดชะงัก'],
+['แพทย์',T1,'เมื่อทำงาน 36 ชั่วโมงติดแล้วถูกตามเคสด่วน คุณจัดการอารมณ์อย่างไร','ผ่าน = ประเมินไหว/ส่งต่ออย่างปลอดภัย เฝ้าระวัง = หงุดหงิดแต่ตรวจครบ ไม่ผ่าน = ปัดเคส/ตรวจลวกๆ'],
+['แพทย์',T2,'เมื่อต้องแจ้งข่าวร้ายกับครอบครัวคนไข้ คุณสื่อสารอย่างไร','ผ่าน = ตรงไปตรงมาอย่างอ่อนโยน เปิดโอกาสถาม เฝ้าระวัง = แจ้งสั้นรีบจบ ไม่ผ่าน = แจ้งห้วนๆ กลางทางเดิน'],
+['แพทย์',T2,'คนไข้ยากไร้ไม่มีเงินจ่ายยา คุณทำอย่างไร','ผ่าน = หาทางเลือกยา/สวัสดิการที่เหมาะสม เฝ้าระวัง = แนะนำแต่ไม่ติดตาม ไม่ผ่าน = ไล่กลับโดยไม่รักษา'],
+['แพทย์',T2,'คนไข้ไม่ทำตามคำแนะนำจนอาการทรุด คุณรู้สึกและทำอย่างไร','ผ่าน = เข้าใจ ทบทวนแผนร่วมกัน เฝ้าระวัง = ติเตียนเล็กน้อยแต่รักษาต่อ ไม่ผ่าน = ตำหนิรุนแรง/ปฏิเสธรักษา'],
+['แพทย์',T3,'เมื่อเตียง ICU ไม่พอสำหรับคนไข้ 2 รายพร้อมกัน คุณตัดสินใจอย่างไร','ผ่าน = ใช้เกณฑ์วิชาการ/ปรึกษาทีมจริยธรรม เฝ้าระวัง = ลังเลแต่ตัดสินตามเกณฑ์ ไม่ผ่าน = เลือกตามความสนิท/ผลประโยชน์'],
+['แพทย์',T3,'ญาติขอให้ปกปิดอาการจริงจากตัวคนไข้ คุณทำอย่างไร','ผ่าน = อธิบายสิทธิคนไข้ ชวนญาติพูดความจริงร่วมกัน เฝ้าระวัง = เลี่ยงตอบชั่วคราวแล้วกลับมาบอก ไม่ผ่าน = โกหกตามคำขอ'],
+['แพทย์',T3,'พบเพื่อนร่วมวิชาชีพสั่งการรักษาผิดพลาดร้ายแรง คุณทำอย่างไร','ผ่าน = แจ้งตามระบบคุ้มครองคนไข้ เฝ้าระวัง = เตือนส่วนตัวก่อนแล้วรายงาน ไม่ผ่าน = ปล่อยผ่านเพราะเกรงใจ']
+];
+let customQb=[];
+let drawnQA=[];
+function qbAll(){return SEED_QB.map((r,i)=>({id:'S'+i,group_name:r[0],topic:r[1],question:r[2],guideline:r[3],seed:true})).concat(customQb)}
+function qbGroups(){const s=[];qbAll().forEach(r=>{if(!s.includes(r.group_name))s.push(r.group_name)});return s}
+function qbTopics(g){const s=[];qbAll().filter(r=>r.group_name===g).forEach(r=>{if(!s.includes(r.topic))s.push(r.topic)});return s}
+function refreshGroups(){
+  const gs=qbGroups(), sel=document.getElementById('f_group'), cur=sel.value;
+  sel.innerHTML=gs.map(g=>`<option value="${esc(g)}">${esc(g)}</option>`).join('');
+  if(gs.includes(cur))sel.value=cur;
+  document.getElementById('b_groupList').innerHTML=gs.map(g=>`<option value="${esc(g)}">`).join('');
+  const ts=[];qbAll().forEach(r=>{if(!ts.includes(r.topic))ts.push(r.topic)});
+  document.getElementById('b_topicList').innerHTML=ts.map(t=>`<option value="${esc(t)}">`).join('');
+}
+function onGroupChange(){drawnQA=[];renderDraw()}
+function drawQuestions(){
+  const g=document.getElementById('f_group').value;
+  if(!g){alert('เลือกกลุ่มก่อน');return}
+  const topics=qbTopics(g);
+  if(!topics.length){alert('กลุ่มนี้ยังไม่มีคำถาม');return}
+  drawnQA=topics.map(t=>{
+    const pool=qbAll().filter(r=>r.group_name===g&&r.topic===t);
+    const pick=pool[Math.floor(Math.random()*pool.length)];
+    return {topic:t,question:pick.question,guideline:pick.guideline,rating:''};
+  });
+  renderDraw();
+}
+function clearDraw(){drawnQA=[];renderDraw()}
+function rateQ(i,v){drawnQA[i].rating=v;renderDraw()}
+function topicWorst(ratings){if(ratings.includes('ไม่ผ่าน'))return 'ไม่ผ่าน';if(ratings.includes('เฝ้าระวัง'))return 'เฝ้าระวัง';return 'ผ่าน'}
+function qaSummary(){
+  if(!drawnQA.length)return null;
+  const topics=[...new Set(drawnQA.map(q=>q.topic))];
+  const per=topics.map(t=>({topic:t,result:topicWorst(drawnQA.filter(q=>q.topic===t).map(q=>q.rating||'ยังไม่ประเมิน'))}));
+  const unrated=drawnQA.filter(q=>!q.rating).length;
+  let suggest='';
+  if(!unrated){const r=per.map(p=>p.result);suggest=r.includes('ไม่ผ่าน')?'FAILED':r.includes('เฝ้าระวัง')?'CONDITIONAL PASSED':'PASSED'}
+  return {per,unrated,suggest};
+}
+function renderDraw(){
+  const box=document.getElementById('qaBox'), sum=document.getElementById('qaSum');
+  if(!drawnQA.length){box.innerHTML='';sum.innerHTML='';return}
+  box.innerHTML=drawnQA.map((q,i)=>`<div class="qacard"><div class="qt">หัวข้อ: ${esc(q.topic)} <small style="color:var(--muted)">(ข้อ ${i+1}/${drawnQA.length})</small></div><div style="margin:6px 0">${esc(q.question)}</div><div class="qg">แนวทาง: ${esc(q.guideline)}</div><div class="qarow">${['ผ่าน','เฝ้าระวัง','ไม่ผ่าน'].map(v=>`<label class="chip"><input type="radio" name="qa${i}" value="${v}" ${q.rating===v?'checked':''} onchange="rateQ(${i},'${v}')"><span>${v}</span></label>`).join('')}</div></div>`).join('');
+  const s=qaSummary();
+  sum.innerHTML=`<div class="qasum">สรุปรายหัวข้อ: ${s.per.map(p=>`${esc(p.topic)} = <b>${esc(p.result)}</b>`).join(' • ')}${s.unrated?`<br>เหลือยังไม่ประเมิน ${s.unrated} ข้อ`:s.suggest?`<br>ผลแนะนำ: <b>${esc(s.suggest)}</b> <button class="btn ghost" style="padding:6px 12px;font-size:13px" onclick="applySuggest('${s.suggest}')">ใช้ผลนี้</button>`:''}</div>`;
+}
+function applySuggest(v){document.querySelectorAll('input[name="diag"]').forEach(e=>e.checked=(e.value===v))}
+async function loadQb(silent){
+  const url=getCfg().url;if(!url){if(!silent){alert('ตั้งค่า URL ก่อน');showTab('setup')}return}
+  try{
+    const res=await fetch(url+'?action=qb_list');const j=await res.json();
+    if(Array.isArray(j)){customQb=j;refreshGroups();renderBank();if(!silent)document.getElementById('bankStatus').textContent=j.length+' คำถาม (เพิ่มเติม)'}
+  }catch(e){if(!silent)document.getElementById('bankStatus').textContent='ดึงไม่สำเร็จ'}
+}
+async function bankAdd(){
+  const g=document.getElementById('b_group').value.trim(), t=document.getElementById('b_topic').value.trim(),
+        q=document.getElementById('b_q').value.trim(), gd=document.getElementById('b_g').value.trim();
+  if(!g||!t||!q){alert('กรอกกลุ่ม หัวข้อ และคำถาม');return}
+  const url=getCfg().url;if(!url){alert('ตั้งค่า URL ก่อน');showTab('setup');return}
+  document.getElementById('bankStatus').textContent='กำลังเพิ่ม...';
+  try{
+    await fetch(url+'?action=qb_add&id=Q'+Date.now()+'&group_name='+encodeURIComponent(g)+'&topic='+encodeURIComponent(t)+'&question='+encodeURIComponent(q)+'&guideline='+encodeURIComponent(gd));
+    document.getElementById('b_q').value='';document.getElementById('b_g').value='';
+    document.getElementById('bankStatus').textContent='เพิ่มแล้ว';
+    setTimeout(()=>loadQb(true),1200);
+  }catch(e){document.getElementById('bankStatus').textContent='เพิ่มไม่สำเร็จ'}
+}
+async function bankDel(id){
+  if(!confirm('ลบคำถามนี้?'))return;
+  const url=getCfg().url;
+  try{await fetch(url+'?action=qb_del&id='+encodeURIComponent(id));setTimeout(()=>loadQb(true),1200)}catch(e){}
+  customQb=customQb.filter(r=>String(r.id)!==String(id));
+  refreshGroups();renderBank();
+}
+function renderBank(){
+  const el=document.getElementById('bankList');if(!el)return;
+  const all=qbAll();
+  const gs=qbGroups();
+  el.innerHTML=gs.map(g=>`<h3 style="margin:14px 0 4px">${esc(g)} (${all.filter(r=>r.group_name===g).length} ข้อ)</h3>`+qbTopics(g).map(t=>`<b style="font-size:13px">${esc(t)}</b>`+all.filter(r=>r.group_name===g&&r.topic===t).map(r=>`<div class="bankitem"><div>${esc(r.question)}</div><small>แนวทาง: ${esc(r.guideline||'-')}${r.seed?' • ชุดเริ่มต้น':''}</small>${r.seed?'':` <button style="font-size:12px" onclick="bankDel('${esc(String(r.id))}')">ลบ</button>`}</div>`).join('')).join('')).join('')||'<p style="color:#9a3412">— ยังไม่มีคำถาม —</p>';
+}
+function parseQA(x){try{const a=JSON.parse(x.qa_json||'[]');return Array.isArray(a)?a:[]}catch{return[]}}
 function getFiltered(){
   const q=(document.getElementById('q').value||'').toLowerCase(), qd=document.getElementById('qDiag').value;
   let arr=getRecords();
   if(qd)arr=arr.filter(x=>x.diagnosis===qd);
-  if(q)arr=arr.filter(x=>((x.name||'')+' '+(x.assess_date||'')+' '+(x.position||'')+' '+(x.emotion_control||'')+' '+(x.empathy||'')+' '+(x.dilemma||'')+' '+(x.notes||'')+' '+(x.recommendation||'')+' '+(x.psychiatrist||'')+' '+(x.diagnosis||'')).toLowerCase().includes(q));
+  if(q)arr=arr.filter(x=>((x.name||'')+' '+(x.assess_date||'')+' '+(x.position||'')+' '+(x.qa_group||'')+' '+(x.emotion_control||'')+' '+(x.empathy||'')+' '+(x.dilemma||'')+' '+(x.notes||'')+' '+(x.recommendation||'')+' '+(x.psychiatrist||'')+' '+(x.diagnosis||'')).toLowerCase().includes(q));
   return {arr,q,qd};
 }
 function renderTable(){
   const {arr}=getFiltered();
-  document.getElementById('tbody').innerHTML=arr.map(x=>`<tr>
+  document.getElementById('tbody').innerHTML=arr.map(x=>{const qa=parseQA(x);const qasum=qa.length?qa.map(q=>`${q.topic.split(' ')[0]}:${q.rating||'-'}`).join(' '):'';
+  return `<tr>
     <td>${esc(fmtDate(x.assess_date))}</td>
-    <td><b>${esc(x.name)}</b><br><small style="color:#c2410c">${esc(x.position||'-')}</small></td>
+    <td><b>${esc(x.name)}</b><br><small style="color:#c2410c">${esc(x.position||'-')}</small>${x.qa_group?`<br><small>กลุ่ม: ${esc(x.qa_group)}</small>`:''}${qasum?`<br><small style="color:#9a3412">${esc(qasum)}</small>`:''}</td>
     <td><small>อารมณ์: <b>${esc(x.emotion_control||'-')}</b><br>Empathy: <b>${esc(x.empathy||'-')}</b><br>Dilemma: <b>${esc(x.dilemma||'-')}</b></small></td>
     <td>${diagBadge(x.diagnosis)}</td>
     <td><div style="font-size:13px;line-height:1.5;max-width:320px;white-space:pre-wrap"><b>บันทึกเพิ่มเติม:</b><br>${esc(x.notes||'-')}<br><br><b>ข้อแนะนำ:</b><br>${esc(x.recommendation||'-')}</div><div style="margin-top:6px"><button style="font-size:12px" onclick="viewRecord('${x.id}')">ดูเต็ม</button></div></td>
     <td>${esc(x.psychiatrist||'')}</td>
-    <td style="white-space:nowrap"><button onclick="printRecord('${x.id}')" title="พิมพ์">พิมพ์</button> <button onclick="delRecord('${x.id}')" title="ลบ">ลบ</button></td></tr>`).join('')||'<tr><td colspan="7" style="text-align:center;color:#9a3412">— ยังไม่มีข้อมูล —</td></tr>';
+    <td style="white-space:nowrap"><button onclick="printRecord('${x.id}')" title="พิมพ์">พิมพ์</button> <button onclick="delRecord('${x.id}')" title="ลบ">ลบ</button></td></tr>`}).join('')||'<tr><td colspan="7" style="text-align:center;color:#9a3412">— ยังไม่มีข้อมูล —</td></tr>';
   document.getElementById('listStatus').textContent=`${arr.length} รายการ`;
 }
 function viewRecord(id){
   const x=getRecords().find(v=>v.id===id);if(!x)return;
-  alert(`${x.name} (${x.position||'-'}) — ${fmtDate(x.assess_date)}\n\nอารมณ์: ${x.emotion_control||'-'} / Empathy: ${x.empathy||'-'} / Dilemma: ${x.dilemma||'-'}\nผล: ${x.diagnosis||'-'}\n\n[บันทึกเพิ่มเติม]\n${x.notes||'-'}\n\n[ข้อแนะนำ]\n${x.recommendation||'-'}\n\nแพทย์: ${x.psychiatrist||'-'}`);
+  const qa=parseQA(x);
+  const qatxt=qa.length?'\n\n[คำถามรายหัวข้อ กลุ่ม'+(x.qa_group||'')+']\n'+qa.map((q,i)=>(i+1)+'. ['+q.topic+'] '+q.question+' → '+(q.rating||'-')).join('\n'):'';
+  alert(`${x.name} (${x.position||'-'}) — ${fmtDate(x.assess_date)}\n\nอารมณ์: ${x.emotion_control||'-'} / Empathy: ${x.empathy||'-'} / Dilemma: ${x.dilemma||'-'}\nผล: ${x.diagnosis||'-'}${qatxt}\n\n[บันทึกเพิ่มเติม]\n${x.notes||'-'}\n\n[ข้อแนะนำ]\n${x.recommendation||'-'}\n\nแพทย์: ${x.psychiatrist||'-'}`);
 }
 function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function fmtDate(v){if(!v)return '';const s=String(v).trim();const m=s.match(/(\d{4}-\d{2}-\d{2})/);if(m)return m[1];const d=new Date(v);if(!isNaN(d))return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');return s}
@@ -436,12 +601,15 @@ function printRecord(id){
   const ls=document.getElementById('lsStyle');if(ls)ls.remove();
   const x=getRecords().find(v=>v.id===id)||collect();
   const diagText=x.diagnosis==='PASSED'?'[PASSED] สภาพจิตใจปกติ พร้อมปฏิบัติหน้าที่และพกพาอาวุธปืน':x.diagnosis==='CONDITIONAL PASSED'?'[CONDITIONAL PASSED] ผ่านแบบมีเงื่อนไข':'[FAILED] ไม่ผ่านเกณฑ์';
+  const qa=parseQA(x);
+  const qaHtml=qa.length?`<div class="r-box"><b class="ht">[ ผลการประเมินรายหัวข้อ — กลุ่ม${esc(x.qa_group||'')}</b><br>${qa.map((q,i)=>`${i+1}. [${esc(q.topic)}] ${esc(q.question)}<br>แนวทาง: ${esc(q.guideline||'-')}<br>ผล: <b>${esc(q.rating||'-')}</b>`).join('<br><br>')}</div>`:'';
   document.getElementById('printArea').innerHTML=`<div class="r-head"><img class="plogo" src="Pictures/001.png"><h2>MYLIFE MEDICAL CENTER - PSYCHIATRIC DEPARTMENT</h2><h3>ใบรายงานการประเมินสภาพจิตใจ (Mental Health Assessment Report)</h3></div>
-  <div class="r-box"><b class="ht">[ ข้อมูลผู้เข้ารับการประเมิน ]</b><br>• ชื่อ-นามสกุล (IC): ${esc(x.name)}<br>• อาชีพ/ตำแหน่ง: ${esc(x.position)}</div>
+  <div class="r-box"><b class="ht">[ ข้อมูลผู้เข้ารับการประเมิน ]</b><br>• ชื่อ-นามสกุล (IC): ${esc(x.name)}<br>• อาชีพ/ตำแหน่ง: ${esc(x.position)}${x.qa_group?`<br>• กลุ่ม: ${esc(x.qa_group)}`:''}</div>
   <div class="r-box"><b class="ht">[ ผลการทดสอบทางจิตวิทยา ]</b><br>การควบคุมอารมณ์ภายใต้ความกดดัน: <b>${esc(x.emotion_control)}</b><br>ระดับความเห็นอกเห็นใจ (Empathy): <b>${esc(x.empathy)}</b><br>การตัดสินใจในภาวะวิกฤต (Dilemma Test): <b>${esc(x.dilemma)}</b></div>
   <div class="r-box"><b class="ht">[ บันทึกเพิ่มเติมของจิตแพทย์ ]</b><br>${esc(x.notes)||'-'}</div>
   <div class="r-box"><b class="ht">[ สรุปผลการวินิจฉัย (Diagnosis) ]</b><br>${diagText}</div>
   <div class="r-box"><b class="ht">[ ข้อแนะนำ ]</b><br>${esc(x.recommendation)||'-'}</div>
+  ${qaHtml}
   <div class="r-sign"><div>จิตแพทย์ผู้ประเมิน: <b>${esc(x.psychiatrist||'-')}</b></div><div>วันที่ประเมิน: ${esc(fmtDate(x.assess_date))}</div></div>`;
   window.print();
 }
@@ -452,7 +620,7 @@ function printFiltered(){
     const st=document.createElement('style');st.id='lsStyle';st.textContent='@page{size:A4 landscape;margin:10mm}';
     document.head.appendChild(st);
   }
-  const rows=arr.map((x,i)=>`<tr><td>${i+1}</td><td>${esc(fmtDate(x.assess_date))}</td><td><b>${esc(x.name)}</b><br><small>${esc(x.position||'-')}</small></td><td><small>${esc(x.emotion_control||'-')}<br>${esc(x.empathy||'-')}<br>${esc(x.dilemma||'-')}</small></td><td>${esc(x.diagnosis||'')}</td><td style="white-space:pre-wrap">${esc(x.notes||'-')}</td><td style="white-space:pre-wrap">${esc(x.recommendation||'-')}</td><td>${esc(x.psychiatrist||'')}</td></tr>`).join('');
+  const rows=arr.map((x,i)=>{const qa=parseQA(x);const qt=qa.length?qa.map(q=>`[${q.topic}] ${q.question} → ${q.rating||'-'}`).join('\n'):'';return `<tr><td>${i+1}</td><td>${esc(fmtDate(x.assess_date))}</td><td><b>${esc(x.name)}</b><br><small>${esc(x.position||'-')}${x.qa_group?' • '+esc(x.qa_group):''}</small></td><td><small>${esc(x.emotion_control||'-')}<br>${esc(x.empathy||'-')}<br>${esc(x.dilemma||'-')}</small></td><td>${esc(x.diagnosis||'')}</td><td style="white-space:pre-wrap">${esc(x.notes||'-')}</td><td style="white-space:pre-wrap">${esc(x.recommendation||'-')}${qt?'\n\n'+esc(qt):''}</td><td>${esc(x.psychiatrist||'')}</td></tr>`}).join('');
   document.getElementById('printArea').innerHTML=`<div class="r-head"><img class="plogo" src="Pictures/001.png"><h2>MYLIFE MEDICAL CENTER - PSYCHIATRIC DEPARTMENT</h2><h3>รายงานสรุปผลการประเมินสภาพจิตใจ</h3></div>
   <table border="1" cellspacing="0" cellpadding="6" style="width:100%;border-collapse:collapse;font-size:12px;border-color:#ea580c"><thead><tr style="background:#ffedd5"><th>ลำดับ</th><th>วันที่</th><th>ชื่อ / ตำแหน่ง</th><th>ผลทดสอบ</th><th>วินิจฉัย</th><th>บันทึกเพิ่มเติม</th><th>ข้อแนะนำ</th><th>แพทย์</th></tr></thead><tbody>${rows}</tbody></table>`;
   window.print();
@@ -465,15 +633,15 @@ async function loadFromSheet(silent){
 function refreshTextDrops(){refreshTextDrop('noteDrop','f_notes','notes','');refreshTextDrop('recDrop','f_recommend','recommendation','')}
 function exportCSV(){
   const arr=getRecords();if(!arr.length){alert('ไม่มีข้อมูล');return}
-  const head=['timestamp','name','position','emotion_control','empathy','dilemma','notes','diagnosis','recommendation','psychiatrist','assess_date'];
+  const head=['timestamp','name','position','emotion_control','empathy','dilemma','notes','diagnosis','recommendation','psychiatrist','assess_date','qa_group','qa_json'];
   const csv=[head.join(',')].concat(arr.map(r=>head.map(h=>'"'+String(r[h]||'').replace(/"/g,'""')+'"').join(','))).join('\n');
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(["\ufeff"+csv],{type:'text/csv'}));a.download='psy-assessment.csv';a.click();
 }
 function saveConfig(){if(!requireAuth(true))return;const u=document.getElementById('cfg_url').value.trim();localStorage.setItem(CFG_KEY,JSON.stringify({url:u}));document.getElementById('cfgStatus').textContent=u?'บันทึกแล้ว':'';if(u)loadFromSheet(true)}
 async function testConfig(){const u=document.getElementById('cfg_url').value.trim()||getCfg().url;if(!u){alert('วาง URL ก่อน');return}document.getElementById('cfgStatus').textContent='ทดสอบ...';try{const r=await fetch(u+'?action=ping');const t=await r.text();document.getElementById('cfgStatus').textContent='เชื่อมต่อสำเร็จ'}catch(e){document.getElementById('cfgStatus').textContent='เชื่อมต่อไม่สำเร็จ'}}
 function clearAll(){if(!requireAuth())return;if(confirm('ลบข้อมูลทั้งหมดในเครื่อง?')){localStorage.removeItem(LS_KEY);renderTable();refreshNameDrop('');refreshDocDrop('')}}
-renderTable();refreshNameDrop('');refreshDocDrop('');
-if(getCfg().url)loadFromSheet(true);
+renderTable();refreshNameDrop('');refreshDocDrop('');refreshGroups();
+if(getCfg().url){loadFromSheet(true);loadQb(true)}
 </script>
 </body>
 </html>

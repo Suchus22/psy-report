@@ -10,7 +10,11 @@
  ****************************************************/
 
 const SHEET_NAME = 'Assessments';
-const HEADERS = ['id','timestamp','name','position','emotion_control','empathy','dilemma','notes','diagnosis','recommendation','psychiatrist','assess_date'];
+const HEADERS = ['id','timestamp','name','position','emotion_control','empathy','dilemma','notes','diagnosis','recommendation','psychiatrist','assess_date','qa_group','qa_json'];
+
+// คลังคำถามรายกลุ่ม (แท็บ QuestionBank)
+const QB_SHEET = 'QuestionBank';
+const QB_HEADERS = ['id','group_name','topic','question','guideline','active'];
 
 // แจ้งเตือน Discord (ไม่ใส่ = ไม่แจ้ง)
 // วิธีเอา URL: เปิด Discord → ห้องที่ต้องการ → แก้ไขช่อง (Edit Channel) → การผสานรวม (Integrations) → เว็บฮุก (Webhooks) → เว็บฮุกใหม่ → คัดลอกลิงก์ → วางแทนที่ '' ด้านล่าง
@@ -29,6 +33,27 @@ function getSheet_() {
   }
   // ซ่อม header ถ้ายังไม่มี
   if (sh.getLastRow() === 0) sh.appendRow(HEADERS);
+  // ย้ายคอลัมน์ใหม่ (qa_group, qa_json) เติมท้าย header เดิมให้อัตโนมัติ
+  try {
+    const h = sh.getRange(1, 1, 1, Math.max(sh.getLastColumn(), 1)).getValues()[0].map(String);
+    if (h.length < HEADERS.length) {
+      sh.getRange(1, h.length + 1, 1, HEADERS.length - h.length).setValues([HEADERS.slice(h.length)]);
+      sh.getRange(1, 1, 1, HEADERS.length).setFontWeight('bold').setBackground('#0ea5a4').setFontColor('#ffffff');
+    }
+  } catch (e) {}
+  return sh;
+}
+
+function getQbSheet_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sh = ss.getSheetByName(QB_SHEET);
+  if (!sh) {
+    sh = ss.insertSheet(QB_SHEET);
+    sh.appendRow(QB_HEADERS);
+    sh.getRange(1,1,1,QB_HEADERS.length).setFontWeight('bold').setBackground('#ea580c').setFontColor('#ffffff');
+    sh.setFrozenRows(1);
+  }
+  if (sh.getLastRow() === 0) sh.appendRow(QB_HEADERS);
   return sh;
 }
 
@@ -49,6 +74,37 @@ function doGet(e) {
       rows.push(o);
     }
     return jsonOut_(rows);
+  }
+  if (action === 'qb_list') {
+    const sh = getQbSheet_();
+    const values = sh.getDataRange().getValues();
+    if (values.length <= 1) return jsonOut_([]);
+    const head = values[0].map(String);
+    const rows = [];
+    for (let i = 1; i < values.length; i++) {
+      const o = {};
+      head.forEach((h, j) => o[h] = values[i][j]);
+      if (String(o.active) !== '0') rows.push(o);
+    }
+    return jsonOut_(rows);
+  }
+  if (action === 'qb_add') {
+    const sh = getQbSheet_();
+    const p = e.parameter || {};
+    sh.appendRow([p.id || ('Q' + Date.now()), p.group_name || '', p.topic || '', p.question || '', p.guideline || '', '1']);
+    return jsonOut_({ ok: true });
+  }
+  if (action === 'qb_del') {
+    const sh = getQbSheet_();
+    const p = e.parameter || {};
+    const values = sh.getDataRange().getValues();
+    for (let i = 1; i < values.length; i++) {
+      if (String(values[i][0]) === String(p.id)) {
+        sh.getRange(i + 1, 6).setValue('0');
+        return jsonOut_({ ok: true });
+      }
+    }
+    return jsonOut_({ ok: false, error: 'not found' });
   }
   return ContentService.createTextOutput('MYLIFE PSY API running. Use ?action=list or ?action=ping').setMimeType(ContentService.MimeType.TEXT);
 }
