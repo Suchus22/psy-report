@@ -12,6 +12,12 @@
 const SHEET_NAME = 'Assessments';
 const HEADERS = ['id','timestamp','name','position','emotion_control','empathy','dilemma','notes','diagnosis','recommendation','psychiatrist','assess_date'];
 
+// แจ้งเตือน Discord (ไม่ใส่ = ไม่แจ้ง)
+// วิธีเอา URL: เปิด Discord → ห้องที่ต้องการ → แก้ไขช่อง (Edit Channel) → การผสานรวม (Integrations) → เว็บฮุก (Webhooks) → เว็บฮุกใหม่ → คัดลอกลิงก์ → วางแทนที่ '' ด้านล่าง
+const DISCORD_WEBHOOK_URL = '';
+// เลือกเคสที่จะแจ้ง: 'ALL' = ทุกเคส, หรือระบุเฉพาะ เช่น ['FAILED'] หรือ ['FAILED','CONDITIONAL PASSED']
+const NOTIFY_FILTER = 'ALL';
+
 function getSheet_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sh = ss.getSheetByName(SHEET_NAME);
@@ -58,6 +64,7 @@ function doPost(e) {
     }
     const row = HEADERS.map(h => data[h] !== undefined ? data[h] : '');
     sh.appendRow(row);
+    try { notifyDiscord_(data); } catch (e) { /* แจ้งไม่สำเร็จก็ไม่ให้บันทึกพัง */ }
     return jsonOut_({ ok: true });
   } catch (err) {
     return jsonOut_({ ok: false, error: String(err) });
@@ -66,4 +73,40 @@ function doPost(e) {
 
 function jsonOut_(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}
+
+function shouldNotify_(diagnosis) {
+  if (!DISCORD_WEBHOOK_URL) return false;
+  if (NOTIFY_FILTER === 'ALL') return true;
+  if (Array.isArray(NOTIFY_FILTER)) return NOTIFY_FILTER.indexOf(diagnosis) !== -1;
+  return true;
+}
+
+function notifyDiscord_(d) {
+  if (!shouldNotify_(d.diagnosis)) return;
+  const color = d.diagnosis === 'PASSED' ? 0x16a34a : d.diagnosis === 'CONDITIONAL PASSED' ? 0xca8a04 : 0xdc2626;
+  const dot = d.diagnosis === 'PASSED' ? '🟢' : d.diagnosis === 'CONDITIONAL PASSED' ? '🟡' : '🔴';
+  const payload = {
+    username: 'MYLIFE Psy Assessment',
+    embeds: [{
+      title: dot + ' ' + (d.diagnosis || 'ผลประเมินใหม่') + ' — ' + (d.name || '-'),
+      color: color,
+      fields: [
+        { name: 'ชื่อ (IC)', value: String(d.name || '-'), inline: true },
+        { name: 'ตำแหน่ง', value: String(d.position || '-'), inline: true },
+        { name: 'วันที่ประเมิน', value: String(d.assess_date || '-'), inline: true },
+        { name: 'อารมณ์ / Empathy / Dilemma', value: [d.emotion_control, d.empathy, d.dilemma].filter(Boolean).join(' / ') || '-' },
+        { name: 'บันทึกเพิ่มเติม', value: String(d.notes || '-').slice(0, 900) || '-' },
+        { name: 'ข้อแนะนำ', value: String(d.recommendation || '-').slice(0, 900) || '-' },
+        { name: 'จิตแพทย์ผู้ประเมิน', value: String(d.psychiatrist || '-'), inline: true }
+      ],
+      timestamp: new Date().toISOString()
+    }]
+  };
+  UrlFetchApp.fetch(DISCORD_WEBHOOK_URL, {
+    method: 'post',
+    contentType: 'application/json',
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  });
 }
