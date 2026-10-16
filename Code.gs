@@ -81,17 +81,25 @@ function doGet(e) {
     if (values.length <= 1) return jsonOut_([]);
     const head = values[0].map(String);
     const rows = [];
+    const stamp = [];
     for (let i = 1; i < values.length; i++) {
       const o = {};
       head.forEach((h, j) => o[h] = values[i][j]);
-      if (String(o.active) !== '0') rows.push(o);
+      // แถวที่พิมพ์มือในชีต: ตัดช่องว่างหัวท้าย กลุ่ม/หัวข้อใหม่เกิดอัตโนมัติ
+      ['id','group_name','topic','question','guideline'].forEach(k => { if (o[k] !== undefined) o[k] = String(o[k]).trim(); });
+      if (!o.id) { o.id = 'Q' + Date.now() + i; stamp.push([i + 1, o.id]); }
+      if (o.active === '' || o.active === undefined || o.active === null) o.active = '1';
+      if (String(o.active) !== '0' && (o.group_name || o.question)) rows.push(o);
     }
+    // เติม id ให้แถวที่เว้นว่างไว้ (ครั้งเดียวจบ แถวเดิมไม่เปลี่ยน)
+    try { stamp.forEach(s => sh.getRange(s[0], 1).setValue(s[1])); } catch (e) {}
     return jsonOut_(rows);
   }
   if (action === 'qb_add') {
     const sh = getQbSheet_();
     const p = e.parameter || {};
-    sh.appendRow([p.id || ('Q' + Date.now()), p.group_name || '', p.topic || '', p.question || '', p.guideline || '', '1']);
+    const trim = v => String(v || '').trim();
+    sh.appendRow([trim(p.id) || ('Q' + Date.now()), trim(p.group_name), trim(p.topic), trim(p.question), trim(p.guideline), '1']);
     return jsonOut_({ ok: true });
   }
   if (action === 'qb_del') {
