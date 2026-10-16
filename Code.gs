@@ -82,8 +82,7 @@ function shouldNotify_(diagnosis) {
   return true;
 }
 
-function notifyDiscord_(d) {
-  if (!shouldNotify_(d.diagnosis)) return;
+function notifyDiscord_(d) {  if (!shouldNotify_(d.diagnosis)) return;
   const color = d.diagnosis === 'PASSED' ? 0x16a34a : d.diagnosis === 'CONDITIONAL PASSED' ? 0xca8a04 : 0xdc2626;
   const dot = d.diagnosis === 'PASSED' ? '🟢' : d.diagnosis === 'CONDITIONAL PASSED' ? '🟡' : '🔴';
   const payload = {
@@ -108,5 +107,15 @@ function notifyDiscord_(d) {
     contentType: 'application/json',
     payload: JSON.stringify(payload),
     muteHttpExceptions: true
+  });
+}
+
+// ฟังก์ชันทดสอบ: ใน Apps Script เลือก testDiscord แล้วกด Run (▶) ถ้า Discord ขึ้นข้อความ = Webhook ใช้ได้
+function testDiscord() {
+  notifyDiscord_({
+    name: 'ทดสอบ ระบบ', position: 'แพทย์', emotion_control: 'ผ่าน',
+    empathy: 'ปกติ', dilemma: 'ปกติ', notes: 'ทดสอบการเชื่อมต่อ',
+    diagnosis: 'PASSED', recommendation: 'ทดสอบ', psychiatrist: 'ทดสอบ',
+    assess_date: '2026-10-16'
   });
 }
