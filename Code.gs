@@ -14,7 +14,7 @@ const HEADERS = ['id','timestamp','name','position','emotion_control','empathy',
 
 // แจ้งเตือน Discord (ไม่ใส่ = ไม่แจ้ง)
 // วิธีเอา URL: เปิด Discord → ห้องที่ต้องการ → แก้ไขช่อง (Edit Channel) → การผสานรวม (Integrations) → เว็บฮุก (Webhooks) → เว็บฮุกใหม่ → คัดลอกลิงก์ → วางแทนที่ '' ด้านล่าง
-const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1560474455917072486/mlidX1c8te7oksIpayAfzbGQSxblZNZYYGBW7MsJkdy9Oaea4bm5YUMpP-hSKVK-MO9Q';
+const DISCORD_WEBHOOK_URL = '';
 // เลือกเคสที่จะแจ้ง: 'ALL' = ทุกเคส, หรือระบุเฉพาะ เช่น ['FAILED'] หรือ ['FAILED','CONDITIONAL PASSED']
 const NOTIFY_FILTER = 'ALL';
 
