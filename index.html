@@ -190,7 +190,7 @@ th{background:#ffedd5;position:sticky;top:0;color:#7c2d12}
 
     <label class="f">[ สรุปผลการวินิจฉัย (Diagnosis) ]</label>
     <div class="diag">
-      <label class="g"><input type="radio" name="diag" value="PASSED" checked><span>🟢 <b>[PASSED]</b> สภาพจิตใจปกติ พร้อมปฏิบัติหน้าที่และพกพาอาวุธปืน</span></label>
+      <label class="g"><input type="radio" name="diag" value="PASSED" checked><span>🟢 <b>[PASSED]</b> สภาพจิตใจปกติ</span></label>
       <label class="y"><input type="radio" name="diag" value="CONDITIONAL PASSED"><span>🟡 <b>[CONDITIONAL PASSED]</b> ผ่านแบบมีเงื่อนไข</span></label>
       <label class="r"><input type="radio" name="diag" value="FAILED"><span>🔴 <b>[FAILED]</b> ไม่ผ่านเกณฑ์</span></label>
     </div>
@@ -603,7 +603,7 @@ function delRecord(id){if(!confirm('ลบรายการนี้?'))return;
 function printRecord(id){
   const ls=document.getElementById('lsStyle');if(ls)ls.remove();
   const x=getRecords().find(v=>v.id===id)||collect();
-  const diagText=x.diagnosis==='PASSED'?'[PASSED] สภาพจิตใจปกติ พร้อมปฏิบัติหน้าที่และพกพาอาวุธปืน':x.diagnosis==='CONDITIONAL PASSED'?'[CONDITIONAL PASSED] ผ่านแบบมีเงื่อนไข':'[FAILED] ไม่ผ่านเกณฑ์';
+  const diagText=x.diagnosis==='PASSED'?'[PASSED] สภาพจิตใจปกติ':x.diagnosis==='CONDITIONAL PASSED'?'[CONDITIONAL PASSED] ผ่านแบบมีเงื่อนไข':'[FAILED] ไม่ผ่านเกณฑ์';
   const qa=parseQA(x);
   const qaHtml=qa.length?`<div class="r-box"><b class="ht">[ ผลการประเมินรายหัวข้อ — กลุ่ม${esc(x.qa_group||'')}</b><br>${qa.map((q,i)=>`${i+1}. [${esc(q.topic)}] ${esc(q.question)}<br>แนวทาง: ${esc(q.guideline||'-')}<br>ผล: <b>${esc(q.rating||'-')}</b>`).join('<br><br>')}</div>`:'';
   document.getElementById('printArea').innerHTML=`<div class="r-head"><img class="plogo" src="Pictures/001.png"><h2>MYLIFE MEDICAL CENTER - PSYCHIATRIC DEPARTMENT</h2><h3>ใบรายงานการประเมินสภาพจิตใจ (Mental Health Assessment Report)</h3></div>
