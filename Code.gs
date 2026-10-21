@@ -16,6 +16,10 @@ const HEADERS = ['id','timestamp','name','position','emotion_control','empathy',
 const QB_SHEET = 'QuestionBank';
 const QB_HEADERS = ['id','group_name','topic','question','guideline','active'];
 
+// ฐานข้อมูลชื่อ-ตำแหน่ง (แท็บ IC_Database)
+const IC_SHEET = 'IC_Database';
+const IC_HEADERS = ['id','ic_name','position','active'];
+
 // แจ้งเตือน Discord (ไม่ใส่ = ไม่แจ้ง)
 // วิธีเอา URL: เปิด Discord → ห้องที่ต้องการ → แก้ไขช่อง (Edit Channel) → การผสานรวม (Integrations) → เว็บฮุก (Webhooks) → เว็บฮุกใหม่ → คัดลอกลิงก์ → วางแทนที่ '' ด้านล่าง
 const DISCORD_WEBHOOK_URL = '';
@@ -57,6 +61,19 @@ function getQbSheet_() {
   return sh;
 }
 
+function getICSheet_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sh = ss.getSheetByName(IC_SHEET);
+  if (!sh) {
+    sh = ss.insertSheet(IC_SHEET);
+    sh.appendRow(IC_HEADERS);
+    sh.getRange(1,1,1,IC_HEADERS.length).setFontWeight('bold').setBackground('#16a34a').setFontColor('#ffffff');
+    sh.setFrozenRows(1);
+  }
+  if (sh.getLastRow() === 0) sh.appendRow(IC_HEADERS);
+  return sh;
+}
+
 function doGet(e) {
   const action = (e && e.parameter && e.parameter.action) || '';
   if (action === 'ping') {
@@ -85,15 +102,65 @@ function doGet(e) {
     for (let i = 1; i < values.length; i++) {
       const o = {};
       head.forEach((h, j) => o[h] = values[i][j]);
-      // แถวที่พิมพ์มือในชีต: ตัดช่องว่างหัวท้าย กลุ่ม/หัวข้อใหม่เกิดอัตโนมัติ
       ['id','group_name','topic','question','guideline'].forEach(k => { if (o[k] !== undefined) o[k] = String(o[k]).trim(); });
       if (!o.id) { o.id = 'Q' + Date.now() + i; stamp.push([i + 1, o.id]); }
       if (o.active === '' || o.active === undefined || o.active === null) o.active = '1';
       if (String(o.active) !== '0' && (o.group_name || o.question)) rows.push(o);
     }
-    // เติม id ให้แถวที่เว้นว่างไว้ (ครั้งเดียวจบ แถวเดิมไม่เปลี่ยน)
     try { stamp.forEach(s => sh.getRange(s[0], 1).setValue(s[1])); } catch (e) {}
     return jsonOut_(rows);
+  }
+  if (action === 'ic_list') {
+    const sh = getICSheet_();
+    const values = sh.getDataRange().getValues();
+    if (values.length <= 1) return jsonOut_([]);
+    const head = values[0].map(String);
+    const rows = [];
+    const stamp = [];
+    for (let i = 1; i < values.length; i++) {
+      const o = {};
+      head.forEach((h, j) => o[h] = values[i][j]);
+      ['id','ic_name','position'].forEach(k => { if (o[k] !== undefined) o[k] = String(o[k]).trim(); });
+      if (!o.id) { o.id = 'IC' + Date.now() + i; stamp.push([i + 1, o.id]); }
+      if (o.active === '' || o.active === undefined || o.active === null) o.active = '1';
+      if (String(o.active) !== '0' && o.ic_name) rows.push(o);
+    }
+    // คืน id ที่สุ่มให้กลับเข้าชีต เพื่อให้ปุ่มแก้ไข/ลบใช้งานได้กับแถวที่พิมพ์เอง
+    try { stamp.forEach(s => sh.getRange(s[0], 1).setValue(s[1])); } catch (e) {}
+    return jsonOut_(rows);
+  }
+  if (action === 'ic_add') {
+    const sh = getICSheet_();
+    const p = e.parameter || {};
+    const trim = v => String(v || '').trim();
+    sh.appendRow([trim(p.id) || ('IC' + Date.now()), trim(p.ic_name), trim(p.position), '1']);
+    return jsonOut_({ ok: true });
+  }
+  if (action === 'ic_upd') {
+    const sh = getICSheet_();
+    const p = e.parameter || {};
+    const trim = v => String(v || '').trim();
+    const values = sh.getDataRange().getValues();
+    for (let i = 1; i < values.length; i++) {
+      if (String(values[i][0]) === String(p.id)) {
+        sh.getRange(i + 1, 2).setValue(trim(p.ic_name));
+        sh.getRange(i + 1, 3).setValue(trim(p.position));
+        return jsonOut_({ ok: true });
+      }
+    }
+    return jsonOut_({ ok: false, error: 'not found' });
+  }
+  if (action === 'ic_del') {
+    const sh = getICSheet_();
+    const p = e.parameter || {};
+    const values = sh.getDataRange().getValues();
+    for (let i = 1; i < values.length; i++) {
+      if (String(values[i][0]) === String(p.id)) {
+        sh.getRange(i + 1, 4).setValue('0');
+        return jsonOut_({ ok: true });
+      }
+    }
+    return jsonOut_({ ok: false, error: 'not found' });
   }
   if (action === 'qb_add') {
     const sh = getQbSheet_();
@@ -194,6 +261,18 @@ function setupQuestionBank() {
     sh.appendRow(['TMP-1', 'ตัวอย่างกลุ่ม (ลบแถวนี้ได้)', 'ตัวอย่างหัวข้อ', 'ตัวอย่างคำถาม: เมื่อถูกกดดันจะทำอย่างไร', 'ผ่าน = ... / เฝ้าระวัง = ... / ไม่ผ่าน = ...', '0']);
   }
   return 'QuestionBank ready: ' + sh.getName();
+}
+
+// สร้างชีตย่อย IC_Database + แถวตัวอย่าง (active=0 ไม่โชว์ในแอป)
+// วิธีใช้: ใน Apps Script เลือก setupICDatabase แล้วกด Run (▶) ครั้งเดียว
+function setupICDatabase() {
+  const sh = getICSheet_();
+  if (sh.getLastRow() <= 1) {
+    sh.appendRow(['IC-1', 'นายสมชาย ใจดี', 'นักเรียนตำรวจ', '0']);
+    sh.appendRow(['IC-2', 'นางสมหญี รักดี', 'ตำรวจ', '0']);
+    sh.appendRow(['IC-3', 'นายวิชัย แข็งขัน', 'แพทย์', '0']);
+  }
+  return 'IC_Database ready: ' + sh.getName();
 }
 
 // ฟังก์ชันทดสอบ: ใน Apps Script เลือก testDiscord แล้วกด Run (▶) ถ้า Discord ขึ้นข้อความ = Webhook ใช้ได้

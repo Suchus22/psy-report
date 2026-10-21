@@ -120,6 +120,7 @@ th{background:#ffedd5;position:sticky;top:0;color:#7c2d12}
     <button id="tabForm" class="active" onclick="showTab('form')">แบบฟอร์มประเมิน</button>
     <button id="tabList" onclick="showTab('list')">ประวัติการประเมิน</button>
     <button id="tabBank" onclick="showTab('bank')">คลังคำถาม</button>
+    <button id="tabIC" onclick="showTab('ic')">ฐานข้อมูลผู้รับการประเมิน</button>
     <button id="tabSetup" onclick="showTab('setup')">ตั้งค่า</button>
   </div>
 
@@ -272,6 +273,30 @@ th{background:#ffedd5;position:sticky;top:0;color:#7c2d12}
     <div id="bankList"></div>
   </div>
 
+  <!-- IC DATABASE -->
+  <div id="page-ic" class="card" style="display:none">
+    <h2 style="margin:0 0 10px">ฐานข้อมูลผู้รับการประเมิน</h2>
+    <p style="color:var(--muted);margin:6px 0 10px">ชื่อ-นามสกุล (IC) และอาชีพ เก็บบน Google Sheet แท็บ <b>IC_Database</b> — พิมพ์ในชีตแล้วกด "ดึงจาก Google Sheets" ได้ทันที รายชื่อจะขึ้นในดรอปดาวน์ของฟอร์มประเมินด้วย</p>
+    <div class="grid2">
+      <div>
+        <label class="f">ชื่อ-นามสกุล (IC)</label>
+        <input type="text" id="ic_name" placeholder="เช่น นายสมชาย ใจดี" autocomplete="off">
+      </div>
+      <div>
+        <label class="f">อาชีพ / ตำแหน่ง</label>
+        <input type="text" id="ic_position" placeholder="เช่น นักเรียนตำรวจ แพทย์" autocomplete="off">
+      </div>
+    </div>
+    <div class="btnrow">
+      <button class="btn primary" id="icSaveBtn" onclick="icAdd()">เพิ่มชื่อ</button>
+      <button class="btn ghost" onclick="loadIC()">ดึงจาก Google Sheets</button>
+      <button class="btn ghost" id="icCancelBtn" style="display:none" onclick="icCancelEdit()">ยกเลิกแก้ไข</button>
+      <input type="hidden" id="ic_edit_id">
+    </div>
+    <div class="status" id="icStatus"></div>
+    <div id="icList"></div>
+  </div>
+
   <!-- SETUP -->
   <div id="page-setup" class="card" style="display:none">
     <h2>ตั้งค่า Google Sheets</h2>
@@ -292,8 +317,8 @@ th{background:#ffedd5;position:sticky;top:0;color:#7c2d12}
 const LS_KEY='psy_records_v1', CFG_KEY='psy_cfg_v1', PW_KEY='psy_pw_v1', SES_KEY='psy_session_v1';
 const DEFAULT_URL='https://script.google.com/macros/s/AKfycbx0tyHaYD8wyXhY-y3xmISanDrkbBRhUom7LjdRwDl4z-IvmG1czzpR1IzevCrAhOVG/exec';
 const MASTER_PW='Admin11548';
-function todayLocal(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 document.getElementById('f_date').value=todayLocal();
+let customIC=[];
 let searchT=null;
 function onSearch(){clearTimeout(searchT);searchT=setTimeout(renderTable,180)}
 function getPw(){return MASTER_PW}
@@ -311,7 +336,7 @@ function setVal(n,v){document.querySelectorAll(`input[name="${n}"]`).forEach(e=>
 function getRecords(){try{return JSON.parse(localStorage.getItem(LS_KEY)||'[]')}catch{return[]}}
 function setRecords(r){localStorage.setItem(LS_KEY,JSON.stringify(r))}
 function getCfg(){try{const c=JSON.parse(localStorage.getItem(CFG_KEY)||'{}');if(c&&c.url){if(c.url.indexOf('AKfycbwqDXTf_pnDOxilBUhw652Nu00qwUZ0CQt8ip5gdDmOhCyFG-oqP9gJ4AgjjUeFdLv')!==-1)return{url:DEFAULT_URL};return c}}catch{}return{url:DEFAULT_URL}}
-function showTab(t){['form','list','bank','setup'].forEach(k=>{document.getElementById('page-'+k).style.display=(k===t?'block':'none');document.getElementById('tab'+k[0].toUpperCase()+k.slice(1)).classList.toggle('active',k===t)});if(t==='list')renderTable();if(t==='bank'){renderBank()}if(t==='setup'){document.getElementById('cfg_url').value=getCfg().url||'';updateLoginStat()}}
+function showTab(t){['form','list','bank','ic','setup'].forEach(k=>{document.getElementById('page-'+k).style.display=(k===t?'block':'none');document.getElementById('tab'+k[0].toUpperCase()+k.slice(1)).classList.toggle('active',k===t)});if(t==='list')renderTable();if(t==='bank'){renderBank()}if(t==='ic'){loadIC(true)}if(t==='setup'){document.getElementById('cfg_url').value=getCfg().url||'';updateLoginStat()}}
 function diagBadge(d){if(d==='PASSED')return '<span class="badge b-green">🟢 PASSED</span>';if(d==='CONDITIONAL PASSED')return '<span class="badge b-yellow">🟡 CONDITIONAL</span>';return '<span class="badge b-red">🔴 FAILED</span>'}
 function collect(){return{id:'ID-'+Date.now(),timestamp:new Date().toISOString(),name:document.getElementById('f_name').value.trim(),position:document.getElementById('f_position').value.trim(),emotion_control:getVal('emotion')||'ผ่าน',empathy:getVal('empathy'),dilemma:getVal('dilemma'),notes:document.getElementById('f_notes').value.trim(),diagnosis:getVal('diag'),recommendation:document.getElementById('f_recommend').value.trim(),psychiatrist:document.getElementById('f_doctor').value.trim(),assess_date:document.getElementById('f_date').value,qa_group:document.getElementById('f_group').value,qa_json:JSON.stringify(drawnQA)}}
 async function saveRecord(printAfter){
@@ -351,17 +376,19 @@ function onNameInput(){
 function refreshNameDrop(filter){
   const drop=document.getElementById('nameDrop'), hist=document.getElementById('nameHist');
   const m=uniqueNameMap();
-  if(m.size===0){drop.style.display='none';hist.textContent='';return}
-  let names=[...m.entries()];
-  if(filter)names=names.filter(([n])=>n.toLowerCase().includes(filter));
-  names=names.slice(0,8);
-  if(names.length===0){drop.style.display='none'}
+  let items=[...m.entries()].map(([n,info])=>({n,info,db:false}));
+  icAll().forEach(r=>{if(r.name&&!m.has(r.name))items.push({n:r.name,info:{count:0,last:{position:r.pos}},db:true})});
+  if(items.length===0){drop.style.display='none';hist.textContent='';return}
+  if(filter)items=items.filter(o=>o.n.toLowerCase().includes(filter));
+  items=items.slice(0,10);
+  if(items.length===0){drop.style.display='none'}
   else{
-    drop.innerHTML=names.map(([n,info])=>`<div class="opt" data-n="${esc(n)}" onclick="selectName(this.dataset.n)"><span><b>${esc(n)}</b><br><small>${esc(info.last.position||'')}${info.last.assess_date?' • '+esc(fmtDate(info.last.assess_date)):''}</small></span><small>📋 ${info.count} ครั้ง<br>${diagBadge(info.last.diagnosis)}</small></div>`).join('');
+    drop.innerHTML=items.map(o=>`<div class="opt" data-n="${esc(o.n)}" onclick="selectName(this.dataset.n)"><span><b>${esc(o.n)}</b><br><small>${esc(o.info.last.position||'')}${o.info.last.assess_date?' • '+esc(fmtDate(o.info.last.assess_date)):''}</small></span><small>${o.db?'📒 ฐานข้อมูล':`📋 ${o.info.count} ครั้ง<br>${diagBadge(o.info.last.diagnosis)}`}</small></div>`).join('');
     drop.style.display='block';
   }
   const cur=document.getElementById('f_name').value.trim();
   if(cur&&m.has(cur)){hist.textContent=`พบประวัติ ${m.get(cur).count} ครั้ง`;hist.style.color='#166534'}
+  else if(cur&&icAll().some(r=>r.name===cur)){hist.textContent='อยู่ในฐานข้อมูลผู้รับการประเมิน';hist.style.color='#166534'}
   else{hist.textContent='';}
 }
 function findLatestByName(n){
@@ -374,15 +401,17 @@ function findLatestByName(n){
 function selectName(n){
   document.getElementById('f_name').value=n;
   const found=findLatestByName(n);
+  const db=icAll().find(r=>r.name===n);
   const posEl=document.getElementById('f_position');
-  if(found&&found.record){
-    posEl.value=found.record.position||'';
-    if(found.record.qa_group&&qbGroups().includes(found.record.qa_group)){document.getElementById('f_group').value=found.record.qa_group;drawnQA=[];renderDraw()}
+  const pos=(found&&found.record&&found.record.position)||(db&&db.pos)||'';
+  if(pos){
+    posEl.value=pos;
     posEl.style.background='#f0fdf4';
     posEl.style.borderColor='#16a34a';
     setTimeout(()=>{posEl.style.background='#fff';posEl.style.borderColor=''},1200);
-    document.getElementById('nameHist').textContent='';
   }
+  if(found&&found.record&&found.record.qa_group&&qbGroups().includes(found.record.qa_group)){document.getElementById('f_group').value=found.record.qa_group;drawnQA=[];renderDraw()}
+  document.getElementById('nameHist').textContent='';
   document.getElementById('nameDrop').style.display='none';
 }
 function autoFillPositionIfExact(){
@@ -391,7 +420,10 @@ function autoFillPositionIfExact(){
   const found=findLatestByName(cur);
   if(found&&found.record&&found.record.position){
     document.getElementById('f_position').value=found.record.position;
+    return;
   }
+  const db=icAll().find(r=>r.name===cur);
+  if(db&&db.pos)document.getElementById('f_position').value=db.pos;
 }
 document.addEventListener('click',e=>{if(!e.target.closest('.namewrap')){const d=document.getElementById('nameDrop');if(d)d.style.display='none'}if(!e.target.closest('.docwrap')){const d2=document.getElementById('docDrop');if(d2)d2.style.display='none'}if(!e.target.closest('.notewrap')){const d3=document.getElementById('noteDrop');if(d3)d3.style.display='none'}if(!e.target.closest('.recwrap')){const d4=document.getElementById('recDrop');if(d4)d4.style.display='none'}});
 function uniqueTextMap(field){
@@ -568,7 +600,55 @@ function renderBank(){
   const el=document.getElementById('bankList');if(!el)return;
   const all=qbAll();
   const gs=qbGroups();
-  el.innerHTML=gs.map(g=>`<h3 style="margin:14px 0 4px">${esc(g)} (${all.filter(r=>r.group_name===g).length} ข้อ)</h3>`+qbTopics(g).map(t=>`<b style="font-size:13px">${esc(t)}</b>`+all.filter(r=>r.group_name===g&&r.topic===t).map(r=>`<div class="bankitem"><div>${esc(r.question)}</div><small>แนวทาง: ${esc(r.guideline||'-')}${r.seed?' • ชุดเริ่มต้น':''}</small>${r.seed?'':` <button style="font-size:12px" onclick="bankDel('${esc(String(r.id))}')">ลบ</button>`}</div>`).join('')).join('')).join('')||'<p style="color:#9a3412">— ยังไม่มีคำถาม —</p>';
+  el.innerHTML=gs.map(g=>`<h3 style="margin:14px 0 4px">${esc(g)} (${all.filter(r=>r.group_name===g).length} ข้อ)</h3>`+qbTopics(g).map(t=>`<b style="font-size:13px">${esc(t)}</b>`+all.filter(r=>r.group_name===g&&r.topic===t).map(r=>`<div class="bankitem"><div>${esc(r.question)}</div><small>แนวทาง: ${esc(r.guideline||'-')}${r.seed?' • ชุดเริ่มต้น':''}</small>${r.seed?'':` <button style="font-size:12px" onclick="bankDel('${esc(String(r.id))}')">ลบ</button>`}</div>`).join('')).join(''))||'<p style="color:#9a3412">— ยังไม่มีคำถาม —</p>';
+}
+function parseIC(x){try{return{id:String(x.id||''),name:String(x.ic_name||'').trim(),pos:String(x.position||'').trim()}}catch{return{id:'',name:'',pos:''}}}
+function icAll(){return (customIC||[]).map(parseIC).filter(r=>r.name)}
+function icSetMode(editing){
+  const b=document.getElementById('icSaveBtn'), c=document.getElementById('icCancelBtn');
+  if(b)b.textContent=editing?'อัปเดตชื่อ':'เพิ่มชื่อ';
+  if(c)c.style.display=editing?'':'none';
+}
+async function loadIC(silent){
+  const url=getCfg().url;if(!url){if(!silent){alert('ตั้งค่า URL ก่อน');showTab('setup')}return}
+  if(!silent)document.getElementById('icStatus').textContent='กำลังดึงข้อมูลจาก Google Sheets...';
+  try{const res=await fetch(url+'?action=ic_list');const j=await res.json();if(Array.isArray(j)){customIC=j;renderIC();refreshNameDrop(document.getElementById('f_name').value.trim().toLowerCase());if(!silent)document.getElementById('icStatus').textContent=j.length+' รายชื่อ'}}
+  catch(e){if(!silent)document.getElementById('icStatus').textContent='ดึงไม่สำเร็จ'}
+}
+async function icAdd(){
+  const name=document.getElementById('ic_name').value.trim(), pos=document.getElementById('ic_position').value.trim();
+  if(!name){alert('กรอกชื่อ-นามสกุล');return}
+  const url=getCfg().url;if(!url){alert('ตั้งค่า URL ก่อน');showTab('setup');return}
+  document.getElementById('icStatus').textContent='กำลังบันทึก...';
+  const editId=document.getElementById('ic_edit_id').value;
+  try{
+    if(editId){await fetch(url+'?action=ic_upd&id='+encodeURIComponent(editId)+'&ic_name='+encodeURIComponent(name)+'&position='+encodeURIComponent(pos));document.getElementById('icStatus').textContent='อัปเดตแล้ว';}
+    else{await fetch(url+'?action=ic_add&id=IC'+Date.now()+'&ic_name='+encodeURIComponent(name)+'&position='+encodeURIComponent(pos));document.getElementById('icStatus').textContent='เพิ่มแล้ว';}
+    document.getElementById('ic_name').value='';document.getElementById('ic_position').value='';
+    icCancelEdit(true);
+    setTimeout(()=>loadIC(true),1200);
+  }catch(e){document.getElementById('icStatus').textContent='บันทึกไม่สำเร็จ'}
+}
+async function icDel(id){
+  if(!confirm('ลบชื่อนี้ออกจากฐานข้อมูล?'))return;
+  const url=getCfg().url;try{await fetch(url+'?action=ic_del&id='+encodeURIComponent(id));setTimeout(()=>loadIC(true),1200)}catch(e){}
+  customIC=customIC.filter(r=>String(r.id)!==String(id));renderIC();refreshNameDrop('');
+}
+function icCancelEdit(keepStatus){
+  document.getElementById('ic_name').value='';document.getElementById('ic_position').value='';
+  document.getElementById('ic_edit_id').value='';icSetMode(false);
+  if(!keepStatus)document.getElementById('icStatus').textContent='';
+}
+function renderIC(){
+  const el=document.getElementById('icList');if(!el)return;
+  const all=icAll();
+  el.innerHTML=all.map(r=>`<div class="bankitem"><div><b>${esc(r.name)}</b><br><small>อาชีพ/ตำแหน่ง: ${esc(r.pos||'-')}</small></div><div style="display:flex;gap:8px"><button style="font-size:12px" onclick="icEdit('${esc(r.id)}')">แก้ไข</button> <button style="font-size:12px" onclick="icDel('${esc(r.id)}')">ลบ</button></div></div>`).join('')||'<p style="color:#9a3412">— ยังไม่มีรายชื่อในฐานข้อมูล —</p>';
+}
+function icEdit(id){
+  const r=icAll().find(x=>String(x.id)===String(id));if(!r)return;
+  document.getElementById('ic_name').value=r.name;document.getElementById('ic_position').value=r.pos;
+  document.getElementById('ic_edit_id').value=r.id;icSetMode(true);
+  document.getElementById('ic_name').focus();
 }
 function parseQA(x){try{const a=JSON.parse(x.qa_json||'[]');return Array.isArray(a)?a:[]}catch{return[]}}
 function getFiltered(){
@@ -651,7 +731,7 @@ function saveConfig(){if(!requireAuth(true))return;const u=document.getElementBy
 async function testConfig(){const u=document.getElementById('cfg_url').value.trim()||getCfg().url;if(!u){alert('วาง URL ก่อน');return}document.getElementById('cfgStatus').textContent='ทดสอบ...';try{const r=await fetch(u+'?action=ping');const t=await r.text();document.getElementById('cfgStatus').textContent='เชื่อมต่อสำเร็จ'}catch(e){document.getElementById('cfgStatus').textContent='เชื่อมต่อไม่สำเร็จ'}}
 function clearAll(){if(!requireAuth())return;if(confirm('ลบข้อมูลทั้งหมดในเครื่อง?')){localStorage.removeItem(LS_KEY);renderTable();refreshNameDrop('');refreshDocDrop('')}}
 renderTable();refreshNameDrop('');refreshDocDrop('');refreshGroups();
-if(getCfg().url){Promise.allSettled([loadFromSheet(true),loadQb(true)])}
+if(getCfg().url){Promise.allSettled([loadFromSheet(true),loadQb(true),loadIC(true)])}
 </script>
 </body>
 </html>
