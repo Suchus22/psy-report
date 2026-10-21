@@ -685,6 +685,7 @@ function viewRecord(id){
 }
 function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function fmtDate(v){if(!v)return '';const s=String(v).trim();const m=s.match(/(\d{4}-\d{2}-\d{2})/);if(m)return m[1];const d=new Date(v);if(!isNaN(d))return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');return s}
+function todayLocal(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function delRecord(id){if(!confirm('ลบรายการนี้?'))return;setRecords(getRecords().filter(x=>x.id!==id));renderTable();refreshNameDrop('');refreshDocDrop('');const u=getCfg().url;if(u){fetch(u+'?action=sh_del&id='+encodeURIComponent(id)).catch(()=>{})}}
 function printRecord(id){
   const ls=document.getElementById('lsStyle');if(ls)ls.remove();
