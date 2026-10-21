@@ -85,11 +85,16 @@ function doGet(e) {
     if (values.length <= 1) return jsonOut_([]);
     const head = values[0];
     const rows = [];
+    const stamp = [];
     for (let i = 1; i < values.length; i++) {
       const o = {};
       head.forEach((h, j) => o[String(h)] = values[i][j]);
+      ['id','timestamp','name','position','emotion_control','empathy','dilemma','notes','diagnosis','recommendation','psychiatrist','assess_date','qa_group'].forEach(k => { if (o[k] !== undefined) o[k] = String(o[k]).trim(); });
+      // แถวที่พิมพ์ตรงในชีต (ยังไม่มี id) → ให้ id แล้วเขียนกลับชีต เพื่อให้ลบ/แก้ไขเสถียร
+      if (!o.id) { o.id = 'ID-' + Date.now() + '-' + i; stamp.push([i + 1, o.id]); }
       rows.push(o);
     }
+    try { stamp.forEach(s => sh.getRange(s[0], 1).setValue(s[1])); } catch (e) {}
     return jsonOut_(rows);
   }
   if (action === 'qb_list') {
